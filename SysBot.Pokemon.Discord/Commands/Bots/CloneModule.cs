@@ -44,7 +44,7 @@ namespace SysBot.Pokemon.Discord
         [Command("fixads")]
         [Alias("fix")]
         [Summary("Fixes OT and Nickname of a Pokémon you show via Link Trade if an advert is detected.")]
-        [RequireQueueRole(nameof(DiscordManager.RolesTrade))]
+        [RequireQueueRole(nameof(DiscordManager.RolesTrade.RolesClone))]
         public async Task FixAdOT()
         {
             var code = Info.GetRandomTradeCode();
