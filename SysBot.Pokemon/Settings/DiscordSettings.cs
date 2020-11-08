@@ -43,6 +43,8 @@ namespace SysBot.Pokemon
 
         [Category(Whitelists), Description("Users with this role are allowed to enter the FixOT queue.")]
         public string RoleCanFixOT { get; set; } = DefaultDisable;
+        [Category(Whitelists), Description("Users with this role are allowed to enter the PowerUp queue.")]
+        public string RoleCanPowerUp { get; set; } = DefaultDisable;
 
         [Category(Whitelists), Description("Users with this role are allowed to enter the EggRoll queue.")]
         public string RoleCanEggRoll { get; set; } = DefaultDisable;

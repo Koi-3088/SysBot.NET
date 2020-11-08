@@ -18,6 +18,7 @@ namespace SysBot.Pokemon
         private int CompletedDistribution;
         private int CompletedClones;
         private int CompletedFixOTs;
+        private int CompletedPowerUps;
         private int CompletedEggRolls;
         private int CompletedDumps;
         private int CompletedRaids;
@@ -40,6 +41,7 @@ namespace SysBot.Pokemon
             CompletedDistribution = Config.CompletedDistribution;
             CompletedClones = Config.CompletedClones;
             CompletedFixOTs = Config.CompletedFixOTs;
+            CompletedPowerUps = Config.CompletedPowerUps;
             CompletedEggRolls = Config.CompletedEggRolls;
             CompletedDumps = Config.CompletedDumps;
             CompletedRaids = Config.CompletedRaids;
@@ -105,6 +107,12 @@ namespace SysBot.Pokemon
             Config.CompletedFixOTs = CompletedFixOTs;
         }
 
+        public void AddCompletedPowerUps()
+        {
+            Interlocked.Increment(ref CompletedPowerUps);
+            Config.CompletedPowerUps = CompletedPowerUps;
+        }
+
         public void AddCompletedEggRolls()
         {
             Interlocked.Increment(ref CompletedEggRolls);
@@ -131,6 +139,8 @@ namespace SysBot.Pokemon
                 yield return $"Clone Trades: {CompletedClones}";
             if (CompletedFixOTs != 0)
                 yield return $"FixOT Trades: {CompletedFixOTs}";
+            if (CompletedPowerUps != 0)
+                yield return $"PowerUp Trades: {CompletedPowerUps}";
             if (CompletedEggRolls != 0)
                 yield return $"EggRoll Trades: {CompletedEggRolls}";
             if (CompletedDumps != 0)
@@ -236,11 +246,11 @@ namespace SysBot.Pokemon
 
             var totalSpecies = System.Text.RegularExpressions.Regex.Matches(content, countSpecies, System.Text.RegularExpressions.RegexOptions.Multiline).OfType<System.Text.RegularExpressions.Match>().Select(countSpecies => int.Parse(countSpecies.Groups[1].Value)).Sum();
             var totalShiny = System.Text.RegularExpressions.Regex.Matches(content, countShiny, System.Text.RegularExpressions.RegexOptions.Multiline).OfType<System.Text.RegularExpressions.Match>().Select(countShiny => int.Parse(countShiny.Groups[1].Value)).Sum();
-            
+
             if (pkm.IsEgg)
                 content = System.Text.RegularExpressions.Regex.Replace(content, total, $"Total = {totalSpecies} Eggs, {totalShiny} Shiny", System.Text.RegularExpressions.RegexOptions.Multiline).TrimEnd();
             else content = System.Text.RegularExpressions.Regex.Replace(content, total, $"Total = {totalSpecies} Pokémon, {totalShiny} Shiny", System.Text.RegularExpressions.RegexOptions.Multiline).TrimEnd();
-            
+
             System.IO.StreamWriter writer = new System.IO.StreamWriter(file);
             writer.WriteLine(content);
             writer.Close();

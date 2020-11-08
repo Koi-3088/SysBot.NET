@@ -53,6 +53,8 @@ namespace SysBot.Pokemon
 
         [Category(UserBias), Description("Biases the FixOT Queue's weight based on how many users are in the queue.")]
         public int YieldMultCountFixOT { get; set; } = 100;
+        [Category(UserBias), Description("Biases the PowerUp Queue's weight based on how many users are in the queue.")]
+        public int YieldMultCountPowerUp { get; set; } = 100;
 
         [Category(UserBias), Description("Biases the EggRoll Queue's weight based on how many users are in the queue.")]
         public int YieldMultCountEggRoll { get; set; } = 100;
@@ -74,8 +76,10 @@ namespace SysBot.Pokemon
         [Category(TimeBias), Description("Checks time elapsed since the user joined the Clone queue, and increases the queue's weight accordingly.")]
         public int YieldMultWaitClone { get; set; } = 1;
 
-        [Category(TimeBias), Description("Checks time elapsed since the user joined the FitOT queue, and increases the queue's weight accordingly.")]
+        [Category(TimeBias), Description("Checks time elapsed since the user joined the FixOT queue, and increases the queue's weight accordingly.")]
         public int YieldMultWaitFixOT { get; set; } = 1;
+        [Category(TimeBias), Description("Checks time elapsed since the user joined the PowerUp queue, and increases the queue's weight accordingly.")]
+        public int YieldMultWaitPowerUp { get; set; } = 1;
 
         [Category(TimeBias), Description("Checks time elapsed since the user joined the EggRoll queue, and increases the queue's weight accordingly.")]
         public int YieldMultWaitEggRoll { get; set; } = 1;
@@ -93,6 +97,7 @@ namespace SysBot.Pokemon
                 PokeTradeType.Seed => YieldMultCountSeedCheck,
                 PokeTradeType.Clone => YieldMultCountClone,
                 PokeTradeType.FixOT => YieldMultCountFixOT,
+                PokeTradeType.PowerUp => YieldMultCountPowerUp,
                 PokeTradeType.EggRoll => YieldMultCountEggRoll,
                 PokeTradeType.Dump => YieldMultCountDump,
                 _ => YieldMultCountTrade
@@ -106,6 +111,7 @@ namespace SysBot.Pokemon
                 PokeTradeType.Seed => YieldMultWaitSeedCheck,
                 PokeTradeType.Clone => YieldMultWaitClone,
                 PokeTradeType.FixOT => YieldMultWaitFixOT,
+                PokeTradeType.PowerUp => YieldMultWaitPowerUp
                 PokeTradeType.EggRoll => YieldMultWaitEggRoll,
                 PokeTradeType.Dump => YieldMultWaitDump,
                 _ => YieldMultWaitTrade
