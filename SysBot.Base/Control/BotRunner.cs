@@ -13,19 +13,20 @@ namespace SysBot.Base
 
         public virtual void Add(SwitchRoutineExecutor<T> bot)
         {
-            if (Bots.Any(z => z.Bot.Connection.IP == bot.Connection.IP))
-                throw new ArgumentException($"{nameof(bot.Connection.IP)} has already been added.");
+            if (Bots.Any(z => z.Bot.Connection.IP == bot.Connection.IP && z.Bot.Config.UsbPortIndex == bot.Config.UsbPortIndex && z.Bot.Config.ConnectionType == bot.Config.ConnectionType))
+                throw new ArgumentException($"{(bot.Config.ConnectionType == ConnectionType.WiFi ? nameof(bot.Connection.IP) : nameof(bot.Config.UsbPortIndex))} has already been added.");
             Bots.Add(new BotSource<T>(bot));
         }
 
-        public virtual bool Remove(string ip, bool callStop)
+        public virtual bool Remove(string ip, string usbPortIndex, bool callStop)
         {
-            var match = Bots.Find(z => z.Bot.Connection.IP == ip);
+            var match = Bots.Find(z => z.Bot.Connection.IP == ip && z.Bot.Config.UsbPortIndex == usbPortIndex);
             if (match == null)
                 return false;
 
             if (callStop)
                 match.Stop();
+
             return Bots.Remove(match);
         }
 
@@ -61,6 +62,6 @@ namespace SysBot.Base
         }
 
         public BotSource<T>? GetBot(T config) => Bots.Find(z => z.Bot.Config == config);
-        public BotSource<T>? GetBot(string ip) => Bots.Find(z => z.Bot.Config.IP == ip);
+        public BotSource<T>? GetBot(string ip) => Bots.Find(z => z.Bot.Config.ConnectionType == ConnectionType.WiFi ? z.Bot.Config.IP == ip : z.Bot.Config.UsbPortIndex == ip);
     }
 }

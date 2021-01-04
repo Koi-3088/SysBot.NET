@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using System.Linq;
 using System.Threading;
 
 namespace SysBot.Pokemon
@@ -16,6 +17,8 @@ namespace SysBot.Pokemon
         private int CompletedSurprise;
         private int CompletedDistribution;
         private int CompletedClones;
+        private int CompletedFixOTs;
+        private int CompletedTradeCords;
         private int CompletedDumps;
         private int CompletedRaids;
 
@@ -36,6 +39,8 @@ namespace SysBot.Pokemon
             CompletedSurprise = Config.CompletedSurprise;
             CompletedDistribution = Config.CompletedDistribution;
             CompletedClones = Config.CompletedClones;
+            CompletedFixOTs = Config.CompletedFixOTs;
+            CompletedTradeCords = Config.CompletedTradeCords;
             CompletedDumps = Config.CompletedDumps;
             CompletedRaids = Config.CompletedRaids;
         }
@@ -63,6 +68,7 @@ namespace SysBot.Pokemon
             Interlocked.Increment(ref CompletedEncounters);
             Config.CompletedEncounters = CompletedEncounters;
         }
+
         public void AddCompletedLegends()
         {
             Interlocked.Increment(ref CompletedLegends);
@@ -93,6 +99,18 @@ namespace SysBot.Pokemon
             Config.CompletedClones = CompletedClones;
         }
 
+        public void AddCompletedFixOTs()
+        {
+            Interlocked.Increment(ref CompletedFixOTs);
+            Config.CompletedFixOTs = CompletedFixOTs;
+        }
+
+        public void AddCompletedTradeCords()
+        {
+            Interlocked.Increment(ref CompletedTradeCords);
+            Config.CompletedTradeCords = CompletedTradeCords;
+        }
+
         public void AddCompletedRaids()
         {
             Interlocked.Increment(ref CompletedRaids);
@@ -111,6 +129,10 @@ namespace SysBot.Pokemon
                 yield return $"Seed Check Trades: {CompletedSeedChecks}";
             if (CompletedClones != 0)
                 yield return $"Clone Trades: {CompletedClones}";
+            if (CompletedFixOTs != 0)
+                yield return $"FixOT Trades: {CompletedFixOTs}";
+            if (CompletedTradeCords != 0)
+                yield return $"TradeCord Trades: {CompletedTradeCords}";
             if (CompletedDumps != 0)
                 yield return $"Dump Trades: {CompletedDumps}";
             if (CompletedTrades != 0)

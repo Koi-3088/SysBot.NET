@@ -23,12 +23,12 @@ namespace SysBot.Pokemon
                 Hub.Bots.Add(b);
         }
 
-        public override bool Remove(string ip, bool callStop)
+        public override bool Remove(string ip, string usbPortIndex, bool callStop)
         {
-            var bot = Bots.Find(z => z.Bot.Connection.IP == ip)?.Bot;
+            var bot = Bots.Find(z => z.Bot.Connection.IP == ip && z.Bot.Config.UsbPortIndex == usbPortIndex)?.Bot;
             if (bot is PokeTradeBot b)
                 Hub.Bots.Remove(b);
-            return base.Remove(ip, callStop);
+            return base.Remove(ip, usbPortIndex, callStop);
         }
 
         public override void StartAll()
@@ -95,6 +95,8 @@ namespace SysBot.Pokemon
                 or PokeRoutineType.SurpriseTrade
                 or PokeRoutineType.LinkTrade
                 or PokeRoutineType.Clone
+                or PokeRoutineType.FixOT
+                or PokeRoutineType.TradeCord
                 or PokeRoutineType.Dump
                 or PokeRoutineType.SeedCheck
                 => new PokeTradeBot(Hub, cfg),

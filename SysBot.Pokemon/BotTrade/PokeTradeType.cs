@@ -6,6 +6,8 @@
         Specific,
         Seed,
         Clone,
+        FixOT,
+        TradeCord,
         Dump,
     }
 }

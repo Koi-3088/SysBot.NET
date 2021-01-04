@@ -11,21 +11,31 @@ namespace SysBot.Base
     /// </summary>
     public class SwitchConnectionAsync : SwitchConnectionBase
     {
-        public SwitchConnectionAsync(string ipaddress, int port) : base(ipaddress, port) { }
-        public SwitchConnectionAsync(SwitchBotConfig cfg) : this(cfg.IP, cfg.Port) { }
+        public SwitchConnectionAsync(string ipaddress, int port, SwitchBotConfig cfg) : base(ipaddress, port, cfg) { }
+        public SwitchConnectionAsync(SwitchBotConfig cfg) : this(cfg.IP, cfg.Port, cfg) { }
 
         public void Connect()
         {
-            if (Connected)
+            if (Config.ConnectionType == ConnectionType.WiFi)
             {
-                Log("Already connected prior, skipping initial connection.");
-                return;
-            }
+                if (Connected)
+                {
+                    Log("Already connected prior, skipping initial connection.");
+                    return;
+                }
 
-            Log("Connecting to device...");
-            Connection.Connect(IP, Port);
-            Connected = true;
-            Log("Connected!");
+                Log("Connecting to device...");
+                Connection.Connect(IP, Port);
+                Connected = true;
+                Log("Connected!");
+            }
+            else
+            {
+                Log("Connecting to USB device...");
+                ConnectionUSB.ConnectUSB();
+                ConnectedUSB = true;
+                Log("Connected!");
+            }
         }
 
         public void Reset(string ip)
@@ -47,11 +57,21 @@ namespace SysBot.Base
 
         public void Disconnect()
         {
-            Log("Disconnecting from device...");
-            Connection.Shutdown(SocketShutdown.Both);
-            Connection.BeginDisconnect(true, DisconnectCallback, Connection);
-            Connected = false;
-            Log("Disconnected!");
+            if (Config.ConnectionType == ConnectionType.WiFi)
+            {
+                Log("Disconnecting from device...");
+                Connection.Shutdown(SocketShutdown.Both);
+                Connection.BeginDisconnect(true, DisconnectCallback, Connection);
+                Connected = false;
+                Log("Disconnected!");
+            }
+            else
+            {
+                Log("Disconnecting from USB device...");
+                ConnectionUSB.DisconnectUSB();
+                ConnectedUSB = false;
+                Log("Disconnected!");
+            }
         }
 
         private readonly AutoResetEvent connectionDone = new(false);
@@ -88,20 +108,33 @@ namespace SysBot.Base
             return br;
         }
 
-        public async Task<int> SendAsync(byte[] buffer, CancellationToken token) => await Task.Run(() => Connection.Send(buffer), token).ConfigureAwait(false);
+        public async Task<int> SendAsync(byte[] buffer, ConnectionType type, CancellationToken token)
+        {
+            return type switch
+            {
+                ConnectionType.WiFi => await Task.Run(() => Connection.Send(buffer), token).ConfigureAwait(false),
+                ConnectionType.USB => ConnectionUSB.SendUSB(buffer),
+                _ => throw new NotImplementedException(),
+            };
+        }
 
         private async Task<byte[]> ReadBytesFromCmdAsync(byte[] cmd, int length, CancellationToken token)
         {
-            await SendAsync(cmd, token).ConfigureAwait(false);
+            await SendAsync(cmd, Config.ConnectionType, token).ConfigureAwait(false);
 
             var buffer = new byte[(length * 2) + 1];
             var _ = Read(buffer);
             return Decoder.ConvertHexByteStringToBytes(buffer);
         }
 
-        public async Task<byte[]> ReadBytesAsync(uint offset, int length, CancellationToken token)
+        public async Task<byte[]> ReadBytesAsync(uint offset, int length, ConnectionType type, CancellationToken token)
         {
-            return await ReadBytesFromCmdAsync(SwitchCommand.Peek(offset, length), length, token).ConfigureAwait(false);
+            return type switch
+            {
+                ConnectionType.WiFi => await ReadBytesFromCmdAsync(SwitchCommand.Peek(offset, length), length, token).ConfigureAwait(false),
+                ConnectionType.USB => ConnectionUSB.ReadBytesUSB(offset, length),
+                _ => throw new NotImplementedException(),
+            };
         }
 
         public async Task<byte[]> ReadBytesAbsoluteAsync(ulong offset, int length, CancellationToken token)
@@ -128,16 +161,20 @@ namespace SysBot.Base
             return BitConverter.ToUInt64(baseBytes, 0);
         }
 
-        public async Task WriteBytesAsync(byte[] data, uint offset, CancellationToken token)
+        public async Task WriteBytesAsync(byte[] data, uint offset, ConnectionType type, CancellationToken token)
         {
             var cmd = SwitchCommand.Poke(offset, data);
-            await SendAsync(cmd, token).ConfigureAwait(false);
+            switch (type)
+            {
+                case ConnectionType.WiFi: await SendAsync(cmd, Config.ConnectionType, token).ConfigureAwait(false); break;
+                case ConnectionType.USB: ConnectionUSB.WriteBytesUSB(data, offset); break;
+            };
         }
 
         public async Task WriteBytesAbsoluteAsync(byte[] data, ulong offset, CancellationToken token)
         {
             var cmd = SwitchCommand.PokeAbsolute(offset, data);
-            await SendAsync(cmd, token).ConfigureAwait(false);
+            await SendAsync(cmd, Config.ConnectionType, token).ConfigureAwait(false);
         }
     }
 }

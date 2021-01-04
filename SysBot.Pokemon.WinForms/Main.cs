@@ -67,6 +67,13 @@ namespace SysBot.Pokemon.WinForms
             CB_Routine.DataSource = list;
             CB_Routine.SelectedIndex = 2; // default option
 
+            var connectionTypes = (ConnectionType[])Enum.GetValues(typeof(ConnectionType));
+            var connectionList = connectionTypes.Select(z => new ComboItem(z.ToString(), (int)z)).ToArray();
+            CB_ConnectionType.DisplayMember = nameof(ComboItem.Text);
+            CB_ConnectionType.ValueMember = nameof(ComboItem.Value);
+            CB_ConnectionType.DataSource = connectionList;
+            CB_ConnectionType.SelectedIndex = 0; // WiFi as default
+
             LogUtil.Forwarders.Add(AppendLog);
         }
 
@@ -170,7 +177,8 @@ namespace SysBot.Pokemon.WinForms
             var cfg = CreateNewBotConfig();
             if (!AddBot(cfg))
             {
-                WinFormsUtil.Alert("Unable to add bot; ensure details are valid and not duplicate with an already existing bot.");
+                WinFormsUtil.Alert(cfg.ConnectionType == ConnectionType.WiFi ? "Unable to add bot; ensure details are valid and not duplicate with an already existing bot."
+                    : "Unable to add bot; ensure details are valid, and that your Switch(es) are plugged in.");
                 return;
             }
             System.Media.SystemSounds.Asterisk.Play();
@@ -178,7 +186,7 @@ namespace SysBot.Pokemon.WinForms
 
         private bool AddBot(PokeBotConfig cfg)
         {
-            if (!cfg.IsValidIP())
+            if ((!cfg.IsValidIP() && cfg.ConnectionType == ConnectionType.WiFi) || (!cfg.IsValidUSBIndex() && cfg.ConnectionType == ConnectionType.USB))
                 return false;
 
             var newbot = RunningEnvironment.CreateBotFromConfig(cfg);
@@ -208,12 +216,13 @@ namespace SysBot.Pokemon.WinForms
                 TB_IP.Text = cfg.IP;
                 NUD_Port.Value = cfg.Port;
                 CB_Routine.SelectedValue = (int)cfg.InitialRoutine;
+                CB_ConnectionType.SelectedValue = (int)cfg.ConnectionType;
             };
 
             row.Remove += (s, e) =>
             {
                 Bots.Remove(row.Config);
-                RunningEnvironment.Remove(row.Config.IP, !RunningEnvironment.Hub.Config.SkipConsoleBotCreation);
+                RunningEnvironment.Remove(row.Config.IP, row.Config.UsbPortIndex, !RunningEnvironment.Hub.Config.SkipConsoleBotCreation);
                 FLP_Bots.Controls.Remove(row);
             };
         }
@@ -222,10 +231,12 @@ namespace SysBot.Pokemon.WinForms
         {
             var type = (PokeRoutineType)WinFormsUtil.GetIndex(CB_Routine);
             var ip = TB_IP.Text;
+            var usbPortIndex = TB_USB_Addr.Text;
             var port = (int)NUD_Port.Value;
+            var connectionType = (ConnectionType)WinFormsUtil.GetIndex(CB_ConnectionType);
 
-            var cfg = SwitchBotConfig.GetConfig<PokeBotConfig>(ip, port);
-            cfg.Initialize(type);
+            var cfg = SwitchBotConfig.GetConfig<PokeBotConfig>(ip, port, connectionType, usbPortIndex);
+            cfg.Initialize(type, connectionType);
             return cfg;
         }
 

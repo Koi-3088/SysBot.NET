@@ -16,10 +16,11 @@ namespace SysBot.Pokemon
         /// Sets the <see cref="NextRoutineType"/> so that the next iteration will perform as desired,
         /// and updates the <see cref="InitialRoutine"/> in the event the settings are saved.
         /// </summary>
-        public void Initialize(PokeRoutineType type)
+        public void Initialize(PokeRoutineType type, ConnectionType conType)
         {
             NextRoutineType = type;
             InitialRoutine = type;
+            ConnectionType = conType;
         }
 
         public void Initialize() => Resume();

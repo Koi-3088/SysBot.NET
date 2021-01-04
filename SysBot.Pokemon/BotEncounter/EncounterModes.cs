@@ -21,5 +21,20 @@
         /// Bot will soft reset the Legendary Dogs
         /// </summary>
         LegendaryDogs,
+
+        /// <summary>
+        /// Bot will soft reset Regis
+        /// </summary>
+        SoftReset,
+
+        /// <summary>
+        /// Bot will soft reset Regigigas
+        /// </summary>
+        Regigigas,
+
+        /// <summary>
+        /// Bot will soft reset Swords of Justices by entering and leaving camp
+        /// </summary>
+        SoJCamp,
     }
 }

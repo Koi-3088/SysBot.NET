@@ -9,7 +9,7 @@ namespace SysBot.Base
     public static class SwitchCommand
     {
         private static readonly Encoding Encoder = Encoding.ASCII;
-        private static byte[] Encode(string command) => Encoder.GetBytes(command + "\r\n");
+        private static byte[] Encode(string command, bool addrn = true) => Encoder.GetBytes(addrn ? command + "\r\n" : command);
 
         /// <summary>
         /// Removes the virtual controller from the bot. Allows physical controllers to control manually.
@@ -82,6 +82,7 @@ namespace SysBot.Base
         /// <param name="count">Amount of bytes</param>
         /// <returns>Encoded command bytes</returns>
         public static byte[] Peek(uint offset, int count) => Encode($"peek 0x{offset:X8} {count}");
+        public static byte[] PeekUSB(uint offset, int count) => Encode($"peek 0x{offset:X8} {count}", false);
 
         /// <summary>
         /// Sends the Bot <see cref="data"/> to be written to <see cref="offset"/>.
@@ -90,6 +91,7 @@ namespace SysBot.Base
         /// <param name="data">Data to write</param>
         /// <returns>Encoded command bytes</returns>
         public static byte[] Poke(uint offset, byte[] data) => Encode($"poke 0x{offset:X8} 0x{string.Concat(data.Select(z => $"{z:X2}"))}");
+        public static byte[] PokeUSB(uint offset, byte[] data) => Encode($"poke 0x{offset:X8} 0x{string.Concat(data.Select(z => $"{z:X2}"))}", false);
 
         /// <summary>
         /// Requests the Bot to send <see cref="count"/> bytes from absolute <see cref="offset"/>.

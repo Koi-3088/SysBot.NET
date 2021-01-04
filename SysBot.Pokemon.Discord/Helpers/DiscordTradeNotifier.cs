@@ -1,4 +1,5 @@
 ﻿using Discord;
+using Discord.Commands;
 using Discord.WebSocket;
 using PKHeX.Core;
 using System;
@@ -12,15 +13,17 @@ namespace SysBot.Pokemon.Discord
         private PokeTradeTrainerInfo Info { get; }
         private int Code { get; }
         private SocketUser Trader { get; }
+        private SocketCommandContext Context { get; }
         public Action<PokeRoutineExecutor>? OnFinish { private get; set; }
         public readonly PokeTradeHub<PK8> Hub = SysCordInstance.Self.Hub;
 
-        public DiscordTradeNotifier(T data, PokeTradeTrainerInfo info, int code, SocketUser trader)
+        public DiscordTradeNotifier(T data, PokeTradeTrainerInfo info, int code, SocketUser trader, SocketCommandContext context)
         {
             Data = data;
             Info = info;
             Code = code;
             Trader = trader;
+            Context = context;
         }
 
         public void TradeInitialize(PokeRoutineExecutor routine, PokeTradeDetail<T> info)
@@ -40,6 +43,12 @@ namespace SysBot.Pokemon.Discord
         {
             OnFinish?.Invoke(routine);
             Trader.SendMessageAsync($"Trade canceled: {msg}").ConfigureAwait(false);
+            if (info.Type == PokeTradeType.TradeCord)
+            {
+                var user = Trader.Id.ToString();
+                var path = TradeExtensions.TradeCordPath.FirstOrDefault(x => x.Contains(user));
+                TradeExtensions.TradeCordPath.Remove(path);
+            }
         }
 
         public void TradeFinished(PokeRoutineExecutor routine, PokeTradeDetail<T> info, T result)
@@ -50,6 +59,22 @@ namespace SysBot.Pokemon.Discord
             Trader.SendMessageAsync(message).ConfigureAwait(false);
             if (result.Species != 0 && Hub.Config.Discord.ReturnPK8s)
                 Trader.SendPKMAsync(result, "Here's what you traded me!").ConfigureAwait(false);
+
+            if (info.Type == PokeTradeType.TradeCord)
+            {
+                var user = Trader.Id.ToString();
+                var original = TradeExtensions.TradeCordPath.FirstOrDefault(x => x.Contains(user));
+                TradeExtensions.TradeCordPath.Remove(original);
+                try
+                {
+                    System.IO.File.Move(original, System.IO.Path.Combine($"TradeCord\\Backup\\{user}", original.Split('\\')[2]));
+                }
+                catch (Exception ex)
+                {
+                    Base.LogUtil.LogText("Error occurred: " + ex.InnerException);
+                    TradeExtensions.TradeCordPath.RemoveAll(x => x.Contains(user));
+                }
+            }
         }
 
         public void SendNotification(PokeRoutineExecutor routine, PokeTradeDetail<T> info, string message)
@@ -80,7 +105,6 @@ namespace SysBot.Pokemon.Discord
         private void SendNotificationZ3(SeedSearchResult r)
         {
             var lines = r.ToString();
-
             var embed = new EmbedBuilder { Color = Color.LighterGrey };
             embed.AddField(x =>
             {
@@ -89,7 +113,14 @@ namespace SysBot.Pokemon.Discord
                 x.IsInline = false;
             });
             var msg = $"Here are the details for `{r.Seed:X16}`:";
-            Trader.SendMessageAsync(msg, embed: embed.Build()).ConfigureAwait(false);
+            if (Hub.Config.SeedCheck.PostResultToChannel && !Hub.Config.SeedCheck.PostResultToBoth)
+                Context.Channel.SendMessageAsync(Trader.Mention + " - " + msg, embed: embed.Build()).ConfigureAwait(false);
+            else if (Hub.Config.SeedCheck.PostResultToBoth)
+            {
+                Context.Channel.SendMessageAsync(Trader.Username + " - " + msg, embed: embed.Build()).ConfigureAwait(false);
+                Trader.SendMessageAsync(msg, embed: embed.Build()).ConfigureAwait(false);
+            }
+            else Trader.SendMessageAsync(msg, embed: embed.Build()).ConfigureAwait(false);
         }
     }
 }

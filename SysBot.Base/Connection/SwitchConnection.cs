@@ -7,8 +7,8 @@ namespace SysBot.Base
     /// </summary>
     public class SwitchConnection : SwitchConnectionBase
     {
-        public SwitchConnection(string ip, int port) : base(ip, port) { }
-        public SwitchConnection(SwitchBotConfig cfg) : this(cfg.IP, cfg.Port) { }
+        public SwitchConnection(string ip, int port, SwitchBotConfig cfg) : base(ip, port, cfg) { }
+        public SwitchConnection(SwitchBotConfig cfg) : this(cfg.IP, cfg.Port, cfg) { }
 
         public void Connect()
         {

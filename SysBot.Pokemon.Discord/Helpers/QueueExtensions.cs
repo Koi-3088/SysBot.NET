@@ -67,7 +67,7 @@ namespace SysBot.Pokemon.Discord
             var name = user.Username;
 
             var trainer = new PokeTradeTrainerInfo(trainerName);
-            var notifier = new DiscordTradeNotifier<PK8>(pk8, trainer, code, user);
+            var notifier = new DiscordTradeNotifier<PK8>(pk8, trainer, code, user, Context);
             var detail = new PokeTradeDetail<PK8>(pk8, trainer, notifier, t, code: code, sig == RequestSignificance.Favored);
             var trade = new TradeEntry<PK8>(detail, userID, type, name);
 
@@ -88,8 +88,8 @@ namespace SysBot.Pokemon.Discord
                 ticketID = $", unique ID: {detail.ID}";
 
             var pokeName = "";
-            if (t == PokeTradeType.Specific && pk8.Species != 0)
-                pokeName = $" Receiving: {(Species)pk8.Species}.";
+            if (t == PokeTradeType.Specific || t == PokeTradeType.TradeCord && pk8.Species != 0)
+                pokeName = $" Receiving: {(hub.Config.Trade.ItemMuleSpecies == (Species)pk8.Species && pk8.HeldItem != 0 ? $"{(Species)pk8.Species + " (" + ShowdownSet.GetShowdownText(pk8).Split('@','\n')[1].Trim() + ")"}" : $"{(Species)pk8.Species}")}.";
             msg = $"{user.Mention} - Added to the {type} queue{ticketID}. Current Position: {position.Position}.{pokeName}";
 
             var botct = Info.Hub.Bots.Count;

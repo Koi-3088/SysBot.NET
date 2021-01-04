@@ -22,7 +22,7 @@ namespace SysBot.Base
             Source = new CancellationTokenSource();
 
             // Detach Controllers
-            Task.Run(() => Bot.Connection.SendAsync(SwitchCommand.DetachController(), CancellationToken.None));
+            Task.Run(() => Bot.Connection.SendAsync(SwitchCommand.DetachController(), Bot.Config.ConnectionType, CancellationToken.None));
             IsPaused = IsRunning = false;
         }
 

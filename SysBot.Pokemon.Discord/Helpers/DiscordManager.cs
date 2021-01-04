@@ -17,6 +17,8 @@ namespace SysBot.Pokemon.Discord
         public readonly SensitiveSet<string> FavoredRoles = new();
 
         public readonly SensitiveSet<string> RolesClone = new();
+        public readonly SensitiveSet<string> RolesFixOT = new();
+        public readonly SensitiveSet<string> RolesTradeCord = new();
         public readonly SensitiveSet<string> RolesTrade = new();
         public readonly SensitiveSet<string> RolesSeed = new();
         public readonly SensitiveSet<string> RolesDump = new();
@@ -58,6 +60,8 @@ namespace SysBot.Pokemon.Discord
             return type switch
             {
                 nameof(RolesClone) => RolesClone,
+                nameof(RolesFixOT) => RolesFixOT,
+                nameof(RolesTradeCord) => RolesTradeCord,
                 nameof(RolesTrade) => RolesTrade,
                 nameof(RolesSeed) => RolesSeed,
                 nameof(RolesDump) => RolesDump,
@@ -77,6 +81,8 @@ namespace SysBot.Pokemon.Discord
             FavoredRoles.Read(cfg.Discord.RoleFavored, z => z);
 
             RolesClone.Read(cfg.Discord.RoleCanClone, z => z);
+            RolesFixOT.Read(cfg.Discord.RoleCanFixOT, z => z);
+            RolesTradeCord.Read(cfg.Discord.RoleCanTradeCord, z => z);
             RolesTrade.Read(cfg.Discord.RoleCanTrade, z => z);
             RolesSeed.Read(cfg.Discord.RoleCanSeedCheck, z => z);
             RolesDump.Read(cfg.Discord.RoleCanDump, z => z);
@@ -92,6 +98,8 @@ namespace SysBot.Pokemon.Discord
             Config.Discord.RoleFavored = FavoredRoles.Write();
 
             Config.Discord.RoleCanClone = RolesClone.Write();
+            Config.Discord.RoleCanFixOT = RolesFixOT.Write();
+            Config.Discord.RoleCanTradeCord = RolesTradeCord.Write();
             Config.Discord.RoleCanTrade = RolesTrade.Write();
             Config.Discord.RoleCanSeedCheck = RolesSeed.Write();
             Config.Discord.RoleCanDump = RolesDump.Write();

@@ -168,7 +168,7 @@ namespace SysBot.Pokemon
                 var files = Directory.EnumerateFiles(Directory.GetCurrentDirectory(), "*", SearchOption.TopDirectoryOnly);
                 foreach (var file in files)
                 {
-                    if (file.Contains(b.Connection.IP))
+                    if (file.Contains(b.Config.ConnectionType == ConnectionType.WiFi ? b.Connection.IP : "USB" + b.Connection.UsbPortIndex))
                         File.Delete(file);
                 }
 
@@ -275,11 +275,11 @@ namespace SysBot.Pokemon
             }
         }
 
-        private string GetBlockFileName(PokeTradeBot b) => string.Format(TradeBlockFormat, b.Connection.IP);
+        private string GetBlockFileName(PokeTradeBot b) => string.Format(TradeBlockFormat, b.Config.ConnectionType == ConnectionType.WiFi ? b.Connection.IP : "USB" + b.Connection.UsbPortIndex);
 
         private void GenerateBotConnection(PokeTradeBot b, PokeTradeDetail<PK8> detail)
         {
-            var file = b.Connection.IP;
+            var file = b.Config.ConnectionType == ConnectionType.WiFi ? b.Connection.IP : "USB" + b.Connection.UsbPortIndex;
             var name = string.Format(TrainerTradeStart, detail.ID, detail.Trainer.TrainerName, (Species)detail.TradeData.Species);
             File.WriteAllText($"{file}.txt", name);
         }
@@ -289,7 +289,7 @@ namespace SysBot.Pokemon
             var func = CreateSpriteFile;
             if (func == null)
                 return;
-            var file = b.Connection.IP;
+            var file = b.Config.ConnectionType == ConnectionType.WiFi ? b.Connection.IP : "USB" + b.Connection.UsbPortIndex;
             var pk = detail.TradeData;
             func.Invoke(pk, $"sprite_{file}.png");
         }

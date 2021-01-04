@@ -46,7 +46,7 @@ namespace SysBot.Pokemon
             await SetBoxPokemon(Blank, InjectBox, InjectSlot, token).ConfigureAwait(false);
 
             Log("Checking item counts...");
-            var pouchData = await Connection.ReadBytesAsync(ItemTreasureAddress, 80, token).ConfigureAwait(false);
+            var pouchData = await Connection.ReadBytesAsync(ItemTreasureAddress, 80, Config.ConnectionType, token).ConfigureAwait(false);
             var counts = FossilCount.GetFossilCounts(pouchData);
             int reviveCount = counts.PossibleRevives(Hub.Config.Fossil.Species);
             if (reviveCount == 0)
@@ -65,7 +65,7 @@ namespace SysBot.Pokemon
                     if (Hub.Config.Fossil.InjectWhenEmpty)
                     {
                         Log("Restoring original pouch data.");
-                        await Connection.WriteBytesAsync(pouchData, ItemTreasureAddress, token).ConfigureAwait(false);
+                        await Connection.WriteBytesAsync(pouchData, ItemTreasureAddress, Config.ConnectionType, token).ConfigureAwait(false);
                         await Task.Delay(500, token).ConfigureAwait(false);
                     }
                     else
@@ -91,6 +91,7 @@ namespace SysBot.Pokemon
                     DumpPokemon(DumpSetting.DumpFolder, "fossil", pk);
 
                 Counts.AddCompletedFossils();
+                TradeExtensions.EncounterLogs(pk);
 
                 if (StopConditionSettings.EncounterFound(pk, DesiredIVs, Hub.Config.StopConditions))
                 {
@@ -102,11 +103,11 @@ namespace SysBot.Pokemon
 
                     if (Hub.Config.Fossil.ContinueAfterMatch)
                     {
-                        Log("Result found! Continuing to collect more fossils.");
+                        Log($"{(!Hub.Config.StopConditions.PingOnMatch.Equals(string.Empty) ? $"<@{Hub.Config.StopConditions.PingOnMatch}>\n" : "")}Result found! Continuing to collect more fossils.");
                     }
                     else
                     {
-                        Log("Result found! Stopping routine execution; restart the bot(s) to search again.");
+                        Log($"{(!Hub.Config.StopConditions.PingOnMatch.Equals(string.Empty) ? $"<@{Hub.Config.StopConditions.PingOnMatch}>\n" : "")}Result found! Stopping routine execution; restart the bot(s) to search again.");
                         await DetachController(token).ConfigureAwait(false);
                         return;
                     }

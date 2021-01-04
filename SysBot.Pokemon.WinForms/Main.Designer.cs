@@ -35,6 +35,8 @@ namespace SysBot.Pokemon.WinForms
             this.FLP_Bots = new System.Windows.Forms.FlowLayoutPanel();
             this.TB_IP = new System.Windows.Forms.TextBox();
             this.CB_Routine = new System.Windows.Forms.ComboBox();
+            this.TB_USB_Addr = new System.Windows.Forms.TextBox();
+            this.CB_ConnectionType = new System.Windows.Forms.ComboBox();
             this.NUD_Port = new System.Windows.Forms.NumericUpDown();
             this.B_New = new System.Windows.Forms.Button();
             this.Tab_Hub = new System.Windows.Forms.TabPage();
@@ -67,6 +69,8 @@ namespace SysBot.Pokemon.WinForms
             this.Tab_Bots.Controls.Add(this.FLP_Bots);
             this.Tab_Bots.Controls.Add(this.TB_IP);
             this.Tab_Bots.Controls.Add(this.CB_Routine);
+            this.Tab_Bots.Controls.Add(this.TB_USB_Addr);
+            this.Tab_Bots.Controls.Add(this.CB_ConnectionType);
             this.Tab_Bots.Controls.Add(this.NUD_Port);
             this.Tab_Bots.Controls.Add(this.B_New);
             this.Tab_Bots.Location = new System.Drawing.Point(4, 22);
@@ -106,6 +110,24 @@ namespace SysBot.Pokemon.WinForms
             this.CB_Routine.Name = "CB_Routine";
             this.CB_Routine.Size = new System.Drawing.Size(101, 21);
             this.CB_Routine.TabIndex = 7;
+            // 
+            // TB_USB_Addr
+            // 
+            this.TB_USB_Addr.Font = new System.Drawing.Font("Courier New", 8.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.TB_USB_Addr.Location = new System.Drawing.Point(355, 6);
+            this.TB_USB_Addr.Name = "TB_USB_Addr";
+            this.TB_USB_Addr.Size = new System.Drawing.Size(27, 20);
+            this.TB_USB_Addr.TabIndex = 10;
+            this.TB_USB_Addr.Text = "0";
+            // 
+            // CB_ConnectionType
+            // 
+            this.CB_ConnectionType.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
+            this.CB_ConnectionType.FormattingEnabled = true;
+            this.CB_ConnectionType.Location = new System.Drawing.Point(388, 5);
+            this.CB_ConnectionType.Name = "CB_ConnectionType";
+            this.CB_ConnectionType.Size = new System.Drawing.Size(45, 21);
+            this.CB_ConnectionType.TabIndex = 10;
             // 
             // NUD_Port
             // 
@@ -207,7 +229,6 @@ namespace SysBot.Pokemon.WinForms
             this.Controls.Add(this.TC_Main);
             this.Icon = global::SysBot.Pokemon.WinForms.Properties.Resources.icon;
             this.MaximizeBox = false;
-            this.MinimizeBox = false;
             this.Name = "Main";
             this.StartPosition = System.Windows.Forms.FormStartPosition.CenterScreen;
             this.Text = "SysBot: Pokémon";
@@ -233,6 +254,8 @@ namespace SysBot.Pokemon.WinForms
         private System.Windows.Forms.Button B_Start;
         private System.Windows.Forms.TextBox TB_IP;
         private System.Windows.Forms.ComboBox CB_Routine;
+        private System.Windows.Forms.TextBox TB_USB_Addr;
+        private System.Windows.Forms.ComboBox CB_ConnectionType;
         private System.Windows.Forms.NumericUpDown NUD_Port;
         private System.Windows.Forms.Button B_New;
         private System.Windows.Forms.FlowLayoutPanel FLP_Bots;

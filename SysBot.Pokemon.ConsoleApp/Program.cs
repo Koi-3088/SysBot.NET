@@ -67,9 +67,14 @@ namespace SysBot.Pokemon.ConsoleApp
 
         private static bool AddBot(PokeBotRunner env, PokeBotConfig cfg)
         {
-            if (!cfg.IsValidIP())
+            if (!cfg.IsValidIP() && cfg.ConnectionType == ConnectionType.WiFi)
             {
                 Console.WriteLine($"{cfg.IP}'s config is not valid.");
+                return false;
+            }
+            else if (!cfg.IsValidUSBIndex() && cfg.ConnectionType == ConnectionType.USB)
+            {
+                Console.WriteLine($"{cfg.UsbPortIndex}'s config is not valid.");
                 return false;
             }
 
