@@ -191,7 +191,7 @@ namespace SysBot.Pokemon.Discord
             {
                 eggPkm = TradeExtensions.EggRngRoutine(content, trainerInfo, form1, form2, evo1, evo2);
                 var laEgg = new LegalityAnalysis(eggPkm);
-                var invalidEgg = !(eggPkm is PK8) || (!laEgg.Valid && SysCordInstance.Self.Hub.Config.Legality.VerifyLegality);
+                var invalidEgg = !(eggPkm is PK8) || !laEgg.Valid;
                 if (invalidEgg)
                 {
                     await Context.Channel.SendPKMAsync(eggPkm, $"Something went wrong!\n{ReusableActions.GetFormattedShowdownText(eggPkm)}").ConfigureAwait(false);
@@ -241,7 +241,7 @@ namespace SysBot.Pokemon.Discord
                     CommonEdits.SetShiny(pkm, Shiny.Random);
 
                 var la = new LegalityAnalysis(pkm);
-                var invalid = !(pkm is PK8) || (!la.Valid && SysCordInstance.Self.Hub.Config.Legality.VerifyLegality);
+                var invalid = !(pkm is PK8) || !la.Valid;
                 if (invalid)
                 {
                     await Context.Channel.SendPKMAsync(pkm, $"Something went wrong!\n{ReusableActions.GetFormattedShowdownText(pkm)}").ConfigureAwait(false);

@@ -349,7 +349,7 @@ namespace SysBot.Pokemon
         public static List<string> SpliceAtWord(string entry, int start, int length)
         {
             int counter = 0;
-            var temp = entry.Split(',').Skip(start);
+            var temp = entry.Contains(",") ? entry.Split(',').Skip(start) : entry.Split('\n').Skip(start);
             List<string> list = new();
 
             if (entry.Length < length)

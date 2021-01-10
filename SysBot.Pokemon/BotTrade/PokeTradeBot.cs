@@ -299,7 +299,7 @@ namespace SysBot.Pokemon
                 }
                 else if (!laInit.Valid)
                 {
-                    Log($"FixOT request has detected an invalid Pokémon: {(Species)clone.Species}");
+                    Log($"FixOT request has detected an invalid Pokémon from {poke.Trainer.TrainerName}: {(Species)clone.Species}");
                     if (DumpSetting.Dump)
                         DumpPokemon(DumpSetting.DumpFolder, "hacked", clone);
 
@@ -318,7 +318,7 @@ namespace SysBot.Pokemon
 
                 clone = (PK8)TradeExtensions.TrashBytes(clone);
                 var la = new LegalityAnalysis(clone);
-                if (!la.Valid && Hub.Config.Legality.VerifyLegality)
+                if (!la.Valid)
                 {
                     var report = la.Report();
                     Log(report);
