@@ -16,6 +16,83 @@ namespace SysBot.Pokemon.Discord
     {
         private static TradeQueueInfo<PK8> Info => SysCordInstance.Self.Hub.Queues.Info;
 
+        [Command("giveawayqueue")]
+        [Alias("gaq")]
+        [Summary("Prints the users in the giveway queues.")]
+        [RequireSudo]
+        public async Task GetGiveawayListAsync()
+        {
+            string msg = Info.GetTradeList(PokeRoutineType.LinkTrade);
+            var embed = new EmbedBuilder();
+            embed.AddField(x =>
+            {
+                x.Name = "Pending Giveaways";
+                x.Value = msg;
+                x.IsInline = false;
+            });
+            await ReplyAsync("These are the users who are currently waiting:", embed: embed.Build()).ConfigureAwait(false);
+        }
+
+        [Command("giveawaypool")]
+        [Alias("gap")]
+        [Summary("Show a list of Pokémon available for giveaway.")]
+        [RequireQueueRole(nameof(DiscordManager.RolesGiveaway))]
+        public async Task DisplayGiveawayPoolCountAsync()
+        {
+            var pool = Info.Hub.Ledy.Pool;
+            if (pool.Count > 0)
+            {
+                var lines = pool.Files.Select((z, i) => $"{i + 1}: {z.Key} = {(Species)z.Value.RequestInfo.Species}");
+                var msg = string.Join("\n", lines);
+                await ListUtil("Giveaway Pool Details", msg).ConfigureAwait(false);
+            }
+            else await ReplyAsync($"Giveaway pool is empty.").ConfigureAwait(false);
+        }
+
+        [Command("giveaway")]
+        [Alias("ga", "giveme", "gimme")]
+        [Summary("Makes the bot trade you the specified giveaway Pokémon.")]
+        [RequireQueueRole(nameof(DiscordManager.RolesGiveaway))]
+        public async Task GiveawayAsync([Remainder] string content)
+        {
+            var code = Info.GetRandomTradeCode();
+            await GiveawayAsync(code, content).ConfigureAwait(false);
+        }
+        
+        [Command("giveaway")]
+        [Alias("ga", "giveme", "gimme")]
+        [Summary("Makes the bot trade you the specified giveaway Pokémon.")]
+        [RequireQueueRole(nameof(DiscordManager.RolesGiveaway))]
+        public async Task GiveawayAsync([Summary("Giveaway Code")] int code, [Remainder] string content)
+        {
+            var pk = new PK8();
+            content = ReusableActions.StripCodeBlock(content);
+            pk.Nickname = content;
+            var pool = Info.Hub.Ledy.Pool;
+
+            if (pool.Count == 0)
+            {
+                await ReplyAsync($"Giveaway pool is empty.").ConfigureAwait(false);
+                return;
+            }
+            else if (pk.Nickname.ToLower() == "random") // Request a random giveaway prize.
+                pk = Info.Hub.Ledy.Pool.GetRandomSurprise();
+            else
+            {
+                var trade = Info.Hub.Ledy.GetLedyTrade(pk);
+                if (trade != null)
+                    pk = trade.Receive;
+                else
+                {
+                    await ReplyAsync($"Requested Pokémon not available, use \"{Info.Hub.Config.Discord.CommandPrefix}giveawaypool\" for a full list of available giveaways!").ConfigureAwait(false);
+                    return;
+                }
+            }
+
+            var sig = Context.User.GetFavor();
+            await Context.AddToQueueAsync(code, Context.User.Username, sig, pk, PokeRoutineType.LinkTrade, PokeTradeType.Giveaway, Context.User).ConfigureAwait(false);
+        }
+
         [Command("fixOT")]
         [Alias("fix", "f")]
         [Summary("Fixes OT and Nickname of a Pokémon you show via Link Trade if an advert is detected.")]
@@ -1196,7 +1273,7 @@ namespace SysBot.Pokemon.Discord
                     if (splice.Count == 0)
                         break;
 
-                    pageContent.Add(string.Join(", ", splice));
+                    pageContent.Add(string.Join(entry.Contains(",") ? ", " : "\n", splice));
                 }
             }
             else pageContent.Add(entry == "" ? emptyList : entry);

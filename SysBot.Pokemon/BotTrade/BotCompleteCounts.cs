@@ -9,6 +9,7 @@ namespace SysBot.Pokemon
         private readonly CountSettings Config;
 
         private int CompletedTrades;
+        private int CompletedGiveaways;
         private int CompletedEggs;
         private int CompletedFossils;
         private int CompletedEncounters;
@@ -31,6 +32,7 @@ namespace SysBot.Pokemon
         public void LoadCountsFromConfig()
         {
             CompletedTrades = Config.CompletedTrades;
+            CompletedGiveaways = Config.CompletedGiveaways;
             CompletedEggs = Config.CompletedEggs;
             CompletedFossils = Config.CompletedFossils;
             CompletedEncounters = Config.CompletedEncounters;
@@ -51,6 +53,11 @@ namespace SysBot.Pokemon
             Config.CompletedTrades = CompletedTrades;
         }
 
+        public void AddCompletedGiveaways()
+        {
+            Interlocked.Increment(ref CompletedGiveaways);
+            Config.CompletedGiveaways = CompletedGiveaways;
+        }
         public void AddCompletedEggs()
         {
             Interlocked.Increment(ref CompletedEggs);
@@ -137,6 +144,8 @@ namespace SysBot.Pokemon
                 yield return $"Dump Trades: {CompletedDumps}";
             if (CompletedTrades != 0)
                 yield return $"Link Trades: {CompletedTrades}";
+            if (CompletedGiveaways != 0)
+                yield return $"Giveaways: {CompletedGiveaways}";
             if (CompletedDistribution != 0)
                 yield return $"Distribution Trades: {CompletedDistribution}";
             if (CompletedSurprise != 0)

@@ -17,6 +17,9 @@ namespace SysBot.Pokemon
         [Category(Trades), Description("Completed Link Trades (Specific User)")]
         public int CompletedTrades { get; set; }
 
+        [Category(Trades), Description("Completed Giveaways (Specific User)")]
+        public int CompletedGiveaways { get; set; }
+
         [Category(Trades), Description("Completed Seed Check Trades")]
         public int CompletedSeedChecks { get; set; }
 
