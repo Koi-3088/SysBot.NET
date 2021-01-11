@@ -173,6 +173,12 @@ namespace SysBot.Pokemon.Discord
             if (msg.Author.Id == _client.CurrentUser.Id || msg.Author.IsBot)
                 return;
 
+            var context = new SocketCommandContext(_client, msg);
+            var mgr = SysCordInstance.Manager;
+
+            if (TryTimedMessage(msg) && mgr.WhitelistedChannels.Contains(msg.Channel.Id))
+                await context.Channel.SendMessageAsync(Hub.Config.Discord.TimedMessage.Replace("{0}", "\n")).ConfigureAwait(false);
+
             // Create a number to track where the prefix ends and the command begins
             int pos = 0;
             if (msg.HasStringPrefix(Hub.Config.Discord.CommandPrefix, ref pos))
@@ -230,7 +236,45 @@ namespace SysBot.Pokemon.Discord
                 await msg.Channel.SendMessageAsync(result.ErrorReason).ConfigureAwait(false);
             return true;
         }
+        private bool TryTimedMessage(SocketUserMessage msg)
+        {
+            if (Hub.Config.Discord.TimedMessage == string.Empty) // Disables this module if the message is blank in the Hub
+                return false;
 
+            if (Hub.Config.Discord.TimedMessagesTimer < 0)
+                Hub.Config.Discord.TimedMessagesTimer = default;
+
+            string filePath = $"TimedMessages.txt";
+
+            if (!System.IO.File.Exists(filePath))
+                System.IO.File.Create(filePath).Close();
+
+            System.IO.StreamReader reader = new System.IO.StreamReader(filePath);
+            var content = reader.ReadToEnd();
+            reader.Close();
+
+            var id = $"{msg.Channel.Id}";
+            var parse = System.Text.RegularExpressions.Regex.Match(content, @"(" + id + @") - (\S*\ \S*\ \w*)", System.Text.RegularExpressions.RegexOptions.Multiline);
+            DateTime.TryParse(parse.Groups[2].Value, out DateTime time);
+            var timer = time.AddMinutes(Hub.Config.Discord.TimedMessagesTimer);
+
+            if (content.Contains(id) && DateTime.Now < timer)
+                return false;
+            else
+            {
+                if (content.Contains(id))
+                {
+                    content = content.Replace(parse.Groups[0].Value, $"{id} - {DateTime.Now}").TrimEnd();
+                    System.IO.StreamWriter writer = new System.IO.StreamWriter(filePath);
+                    writer.WriteLine(content);
+                    writer.Close();
+                }
+                System.IO.File.AppendAllText(filePath, $"{id} - {DateTime.Now}{Environment.NewLine}");
+
+                return true;
+            }
+
+        }
         private async Task MonitorStatusAsync(CancellationToken token)
         {
             const int Interval = 20; // seconds

@@ -146,8 +146,18 @@ namespace SysBot.Pokemon
                 await Unban(token).ConfigureAwait(false);
 
             var pkm = poke.TradeData;
+
             if (pkm.Species != 0)
+            {
+                if (CheckForAdOT(pkm) && !pkm.IsEgg && !Hub.Config.Legality.AllowAds)
+                {
+                    pkm.OT_Name = $"{Hub.Config.Legality.GenerateOT}";
+                    pkm.ClearNickname();
+                    pkm.IsNicknamed = false;
+                }
+
                 await SetBoxPokemon(pkm, InjectBox, InjectSlot, token, sav).ConfigureAwait(false);
+            }
 
             if (!await IsOnOverworld(Hub.Config, token).ConfigureAwait(false))
             {
@@ -284,8 +294,8 @@ namespace SysBot.Pokemon
             else if (poke.Type == PokeTradeType.FixOT)
             {
                 var clone = (PK8)pk.Clone();
-                var adOT = System.Text.RegularExpressions.Regex.Match(clone.OT_Name, @"(YT$)|(YT\w*$)|(Lab$)|(\.\w*)|(TV$)|(PKHeX)|(FB:)|(SysBot)|(AuSLove)|(ShinyMart)").Value != ""
-                    || System.Text.RegularExpressions.Regex.Match(clone.Nickname, @"(YT$)|(YT\w*$)|(Lab$)|(\.\w*)|(TV$)|(PKHeX)|(FB:)|(SysBot)|(AuSLove)|(ShinyMart)").Value != "";
+                var adOT = System.Text.RegularExpressions.Regex.Match(clone.OT_Name, @"(YT$)|(YT\w*$)|(Lab$)|(\.\w*)|(TV$)|(PKHeX)|(PSSSH)|(FB:)|(SysBot)|(Shiny$)|(mart$)|(AuSLove)").Value != ""
+                    || System.Text.RegularExpressions.Regex.Match(clone.Nickname, @"(YT$)|(YT\w*$)|(Lab$)|(\.\w*)|(TV$)|(PKHeX)|(PSSSH)|(FB:)|(SysBot)|(Shiny$)|(mart$)|(AuSLove)").Value != "";
 
                 var extraInfo = $"\nBall: {(Ball)clone.Ball}\nShiny: {(clone.ShinyXor == 0 ? "Square" : clone.ShinyXor <= 16 ? "Star" : "No")}{(clone.FatefulEncounter ? "" : $"\nOT: {TrainerName}")}";
                 var laInit = new LegalityAnalysis(clone);
@@ -343,6 +353,51 @@ namespace SysBot.Pokemon
                 for (int i = 0; i < 5; i++)
                     await Click(A, 0_500, token).ConfigureAwait(false);
             }
+            else if (poke.Type == PokeTradeType.PowerUp)
+            {
+                var clone = (PK8)pk.Clone();
+
+                clone.MaximizeLevel();
+                clone.SetRecordFlags();
+                clone.SetMaximumPPUps();
+                if (poke.TradeData.EVTotal != 0) // If no EVs specified in command (=0), make them the original EVs.
+                    clone.EVs = poke.TradeData.EVs;
+                clone.SetSuggestedHyperTrainingData(clone.IVs);
+                if (clone.CanToggleGigantamax(clone.Species, clone.SpecForm))
+                    clone.CanGigantamax = true;
+                if (clone is IDynamaxLevel d)
+                    d.DynamaxLevel = (byte)(d.CanHaveDynamaxLevel(clone) ? 10 : 0);
+
+                var la = new LegalityAnalysis(clone);
+                if (!la.Valid)
+                {
+                    Log($"PowerUp request (from {poke.Trainer.TrainerName}) has detected an invalid Pokémon: {(Species)clone.Species}");
+                    if (DumpSetting.Dump)
+                        DumpPokemon(DumpSetting.DumpFolder, "hacked", clone);
+
+                    var report = la.Report();
+                    Log(report);
+                    poke.SendNotification(this, "This Pokémon is not legal per PKHeX's legality checks. I am forbidden from modifying this. Exiting trade.");
+                    poke.SendNotification(this, report);
+
+                    await ExitTrade(Hub.Config, true, token).ConfigureAwait(false);
+                    return PokeTradeResult.IllegalTrade;
+                }
+
+                if (Hub.Config.Legality.ResetHOMETracker)
+                    clone.Tracker = 0;
+
+                poke.SendNotification(this, $"```pu\nPowered up your {(Species)clone.Species}! Now confirm the trade!```");
+                Log($"Powered up {(Species)clone.Species}.");
+
+                await ReadUntilPresent(LinkTradePartnerPokemonOffset, 3_000, 1_000, token).ConfigureAwait(false);
+                await Click(A, 0_800, token).ConfigureAwait(false);
+                await SetBoxPokemon(clone, InjectBox, InjectSlot, token, sav).ConfigureAwait(false);
+                pkm = clone;
+
+                for (int i = 0; i < 5; i++)
+                    await Click(A, 0_500, token).ConfigureAwait(false);
+            }
             else if (poke.Type == PokeTradeType.Clone)
             {
                 // Inject the shown Pokémon.
@@ -372,6 +427,10 @@ namespace SysBot.Pokemon
 
                 poke.SendNotification(this, $"**Cloned your {(Species)clone.Species}!**\nNow press B to cancel your offer and trade me a Pokémon you don't want.");
                 Log($"Cloned a {(Species)clone.Species}. Waiting for user to change their Pokémon...");
+
+                //EchoUtil.Echo($"{TrainerName} Cloned: {Environment.NewLine}{ShowdownSet.GetShowdownText(clone)}{Environment.NewLine}- Caught in a {(Ball)clone.Ball} Ball by {clone.OT_Name}/{clone.TrainerID7}.{Environment.NewLine}{(StopConditionSettings.HasMark(clone, out RibbonIndex mark) ? $"**Pokémon has the Mark: {mark.ToString().Replace("Mark", "")}{Environment.NewLine}**" : "")}");
+                EchoUtil.Echo($"{TrainerName} Cloned: {(clone.ShinyXor == 0 ? "◆" : clone.ShinyXor <= 16 ? "★" : "None")} {(Species)clone.Species} - {clone.IV_HP}/{clone.IV_ATK}/{clone.IV_DEF}/{clone.IV_SPA}/{clone.IV_SPD}/{clone.IV_SPE}{Environment.NewLine}{(Nature)clone.Nature} Nature - Caught in a {(Ball)clone.Ball} Ball by {clone.OT_Name}/{clone.TrainerID7}.{Environment.NewLine}{(StopConditionSettings.HasMark(clone, out RibbonIndex mark) ? $"**Pokémon has the Mark: {mark.ToString().Replace("Mark", "")}{Environment.NewLine}**" : "")}");
+
 
                 // Separate this out from WaitForPokemonChanged since we compare to old EC from original read.
                 partnerFound = await ReadUntilChanged(LinkTradePartnerPokemonOffset, oldEC, 15_000, 0_200, false, token).ConfigureAwait(false);
@@ -425,7 +484,7 @@ namespace SysBot.Pokemon
             // Trade was Successful!
             var traded = await ReadBoxPokemon(InjectBox, InjectSlot, token).ConfigureAwait(false);
             // Pokémon in b1s1 is same as the one they were supposed to receive (was never sent).
-            if (poke.Type != PokeTradeType.FixOT && SearchUtil.HashByDetails(traded) == SearchUtil.HashByDetails(pkm))
+            if (poke.Type != PokeTradeType.FixOT && poke.Type != PokeTradeType.PowerUp && SearchUtil.HashByDetails(traded) == SearchUtil.HashByDetails(pkm))
             {
                 Log("User did not complete the trade.");
                 return PokeTradeResult.TrainerTooSlow;
@@ -444,6 +503,8 @@ namespace SysBot.Pokemon
                     counts.AddCompletedClones();
                 else if (poke.Type == PokeTradeType.FixOT)
                     counts.AddCompletedFixOTs();
+                else if (poke.Type == PokeTradeType.PowerUp)
+                    counts.AddCompletedPowerUps();
                 else if (poke.Type == PokeTradeType.TradeCord)
                     counts.AddCompletedTradeCords();
                 else if (poke.Type == PokeTradeType.Giveaway)
@@ -455,7 +516,7 @@ namespace SysBot.Pokemon
                 {
                     var subfolder = poke.Type.ToString().ToLower();
                     DumpPokemon(DumpSetting.DumpFolder, subfolder, traded); // received
-                    if (poke.Type == PokeTradeType.Specific || poke.Type == PokeTradeType.Clone || poke.Type == PokeTradeType.FixOT || poke.Type == PokeTradeType.TradeCord || poke.Type == PokeTradeType.Giveaway)
+                    if (poke.Type == PokeTradeType.Specific || poke.Type == PokeTradeType.Clone || poke.Type == PokeTradeType.FixOT || poke.Type == PokeTradeType.PowerUp || poke.Type == PokeTradeType.TradeCord || poke.Type == PokeTradeType.Giveaway)
                         DumpPokemon(DumpSetting.DumpFolder, "traded", pkm); // sent to partner
                 }
             }
@@ -705,6 +766,16 @@ namespace SysBot.Pokemon
 
             FailedBarrier++;
             Log($"Barrier sync timed out after {timeoutAfter} seconds. Continuing.");
+        }
+        private bool CheckForAdOT(PK8 pkm)
+        {
+            var adOT = System.Text.RegularExpressions.Regex.Match(pkm.OT_Name, @"(YT$)|(YT\w*$)|(Lab$)|(\.\w*)|(TV$)|(PKHeX)|(PSSSH)|(FB:)|(SysBot)|(Shiny$)|(mart$)|(AuSLove)").Value != ""
+                    || System.Text.RegularExpressions.Regex.Match(pkm.Nickname, @"(YT$)|(YT\w*$)|(Lab$)|(\.\w*)|(TV$)|(PKHeX)|(PSSSH)|(FB:)|(SysBot)|(Shiny$)|(mart$)|(AuSLove)").Value != "";
+
+            if (adOT)
+                return true;
+            else
+                return false;
         }
 
         /// <summary>

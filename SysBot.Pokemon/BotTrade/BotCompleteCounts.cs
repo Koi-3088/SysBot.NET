@@ -19,6 +19,7 @@ namespace SysBot.Pokemon
         private int CompletedDistribution;
         private int CompletedClones;
         private int CompletedFixOTs;
+        private int CompletedPowerUps;
         private int CompletedTradeCords;
         private int CompletedDumps;
         private int CompletedRaids;
@@ -42,6 +43,7 @@ namespace SysBot.Pokemon
             CompletedDistribution = Config.CompletedDistribution;
             CompletedClones = Config.CompletedClones;
             CompletedFixOTs = Config.CompletedFixOTs;
+            CompletedPowerUps = Config.CompletedPowerUps;
             CompletedTradeCords = Config.CompletedTradeCords;
             CompletedDumps = Config.CompletedDumps;
             CompletedRaids = Config.CompletedRaids;
@@ -110,6 +112,11 @@ namespace SysBot.Pokemon
         {
             Interlocked.Increment(ref CompletedFixOTs);
             Config.CompletedFixOTs = CompletedFixOTs;
+        }
+        public void AddCompletedPowerUps()
+        {
+            Interlocked.Increment(ref CompletedPowerUps);
+            Config.CompletedPowerUps = CompletedPowerUps;
         }
 
         public void AddCompletedTradeCords()

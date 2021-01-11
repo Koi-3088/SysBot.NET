@@ -96,6 +96,7 @@ namespace SysBot.Pokemon
                 or PokeRoutineType.LinkTrade
                 or PokeRoutineType.Clone
                 or PokeRoutineType.FixOT
+                or PokeRoutineType.PowerUp
                 or PokeRoutineType.TradeCord
                 or PokeRoutineType.Dump
                 or PokeRoutineType.SeedCheck

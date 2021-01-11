@@ -51,6 +51,7 @@ namespace SysBot.Pokemon
                 EncounterMode.SoftReset => DoSoftResetEncounter(token),
                 EncounterMode.Regigigas => DoSoftResetEncounter(token),
                 EncounterMode.SoJCamp => DoSoJCampEncounter(token),
+                EncounterMode.ReginaMons => DoReginaMonsEncounter(token),
                 _ => WalkInLine(token),
             };
             await task.ConfigureAwait(false);
@@ -368,12 +369,36 @@ namespace SysBot.Pokemon
                         return;
                 }
 
-                Log("Fleeing from battle...");
                 while (await IsInBattle(token).ConfigureAwait(false))
                     await FleeToOverworld(token).ConfigureAwait(false);
 
+                Log("Not what I'm looking for! Restarting routine!");
                 while (!await IsOnOverworld(Hub.Config, token).ConfigureAwait(false))
-                    await Task.Delay(2_000).ConfigureAwait(false);
+                    await Click(A, 2_000, token).ConfigureAwait(false);
+                await Task.Delay(1_000).ConfigureAwait(false);
+            }
+        }
+        private const int InjectBox = 0;
+        private const int InjectSlot = 0;
+        private async Task DoReginaMonsEncounter(CancellationToken token)
+        {
+            while (!token.IsCancellationRequested && Config.NextRoutineType == PokeRoutineType.EncounterBot)
+            {
+                Log("Starting Regina Trade...");
+
+                for (int i = 0; i < 15; i++)
+                    await Click(A, 1_500, token).ConfigureAwait(false);
+
+                Log("Pokémon received! Checking details.");
+                var pk = await ReadBoxPokemon(InjectBox, InjectSlot, token).ConfigureAwait(false);
+                if (await HandleEncounter(pk, true, token).ConfigureAwait(false))
+                    return;
+
+                Log($"Not the {SpeciesName.GetSpeciesNameGeneration(pk.Species, 2, 8)} I'm looking for!");
+                await CloseGame(Hub.Config, token).ConfigureAwait(false);
+                await StartGame(Hub.Config, token, true).ConfigureAwait(false);
+                while (!await IsOnOverworld(Hub.Config, token).ConfigureAwait(false))
+                    await Task.Delay(1_500).ConfigureAwait(false);
             }
         }
     }

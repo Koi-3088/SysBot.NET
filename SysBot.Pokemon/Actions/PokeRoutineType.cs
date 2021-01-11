@@ -11,6 +11,7 @@
         SeedCheck,
         Clone,
         FixOT,
+        PowerUp,
         TradeCord,
         Dump,
 

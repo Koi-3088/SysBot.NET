@@ -263,9 +263,9 @@ namespace SysBot.Pokemon
             if (!pkm.ValidBall())
                 BallApplicator.ApplyBallLegalRandom(pkm);
 
-            if (shinyRng > 98)
+            if (shinyRng > 8)
                 CommonEdits.SetShiny(pkm, Shiny.AlwaysSquare);
-            else if (shinyRng > 95)
+            else if (shinyRng > 5)
                 CommonEdits.SetShiny(pkm, Shiny.AlwaysStar);
 
             return pkm;
@@ -423,7 +423,6 @@ namespace SysBot.Pokemon
 
         public static PKM TrashBytes(PKM pkm)
         {
-            pkm.MetDate = DateTime.Parse("2020/10/20");
             pkm.Nickname = "KOIKOIKOIKOI";
             pkm.IsNicknamed = true;
             pkm.ClearNickname();

@@ -36,5 +36,7 @@
         /// Bot will soft reset Swords of Justices by entering and leaving camp
         /// </summary>
         SoJCamp,
+
+        ReginaMons,
     }
 }

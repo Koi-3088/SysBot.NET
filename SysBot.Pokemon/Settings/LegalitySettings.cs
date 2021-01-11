@@ -46,6 +46,9 @@ namespace SysBot.Pokemon
         [Category(Generate), Description("Allow users to submit custom OT, TID, SID, and OT Gender in Showdown sets.")]
         public bool AllowTrainerDataOverride { get; set; } = false;
 
+        [Category(Generate), Description("Enable people to gen Pokémon with advertisements.")]
+        public bool AllowAds { get; set; } = true;
+
         [Category(Generate), Description("Allow users to submit further customization with Batch Editor commands.")]
         public bool AllowBatchCommands { get; set; } = false;
 

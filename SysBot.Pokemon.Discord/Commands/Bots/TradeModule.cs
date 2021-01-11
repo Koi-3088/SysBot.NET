@@ -172,7 +172,7 @@ namespace SysBot.Pokemon.Discord
         {
             if (!pk8.CanBeTraded() || !new TradeExtensions(Info.Hub).IsItemMule(pk8))
             {
-                var msg = "Provided Pokémon content is blocked from trading!";
+                var msg = "**You can't trade that Pokémon you fool!**";
                 await ReplyAsync($"{(!Info.Hub.Config.Trade.ItemMuleCustomMessage.Equals(string.Empty) && !Info.Hub.Config.Trade.ItemMuleSpecies.Equals(Species.None) ? Info.Hub.Config.Trade.ItemMuleCustomMessage : msg)}").ConfigureAwait(false);
                 return;
             }
@@ -191,7 +191,7 @@ namespace SysBot.Pokemon.Discord
         {
             var rng = new System.Random();
             var path = Info.Hub.Config.Trade.MemeFileNames.Split(',');
-            var msg = $"Oops! I wasn't able to create that {GameInfo.Strings.Species[set.Species]}. Here's a meme instead!\n";
+            var msg = $"Fool! That {GameInfo.Strings.Species[set.Species]} is illegal! Here's a meme instead!\n";
 
             if (path.Length == 0)
                 path = new string[] { "https://i.imgur.com/qaCwr09.png" }; //If memes enabled but none provided, use a default one.

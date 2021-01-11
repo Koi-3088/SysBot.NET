@@ -64,6 +64,12 @@ namespace SysBot.Pokemon.Discord
             await channel.SendMessageAsync(txt).ConfigureAwait(false);
         }
 
+        public static async Task SendUserPKMAsShowdownSetAsync(this IUser user, PKM pkm)
+        {
+            var txt = GetFormattedShowdownText(pkm);
+            await user.SendMessageAsync(txt).ConfigureAwait(false);
+        }
+
         public static string GetFormattedShowdownText(PKM pkm)
         {
             var newShowdown = new List<string>();
