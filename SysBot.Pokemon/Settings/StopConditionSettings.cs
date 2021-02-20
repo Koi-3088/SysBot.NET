@@ -36,6 +36,15 @@ namespace SysBot.Pokemon
         [Category(StopConditions), Description("If set to TRUE, matches both ShinyTarget and TargetIVs settings. Otherwise, looks for either ShinyTarget or TargetIVs match.")]
         public bool MatchShinyAndIV { get; set; } = true;
 
+        [Category(StopConditions), Description("Toggle catching Pokémon. Master Ball will be used to guarantee a catch.")]
+        public bool CatchEncounter { get; set; } = false;
+
+        [Category(StopConditions), Description("Toggle whether to inject Master Balls when we run out.")]
+        public bool InjectPokeBalls { get; set; } = false;
+
+        [Category(StopConditions), Description("Enter your numerical Discord ID to be pinged in a log channel upon EggFetch, FossilBot or EncounterBot result.")]
+        public string PingOnMatch { get; set; } = string.Empty;
+
         public static bool EncounterFound(PK8 pk, int[] targetminIVs, int[] targetmaxIVs, StopConditionSettings settings)
         {
             // Match Nature and Species if they were specified.
@@ -111,12 +120,16 @@ namespace SysBot.Pokemon
             return targetIVs;
         }
 
-        private static bool HasMark(IRibbonIndex pk)
+        public static bool HasMark(IRibbonIndex pk, out RibbonIndex result)
         {
+        	result = default;
             for (var mark = RibbonIndex.MarkLunchtime; mark <= RibbonIndex.MarkSlump; mark++)
             {
                 if (pk.GetRibbon((int)mark))
+                {
+                    result = mark;
                     return true;
+                }
             }
             return false;
         }

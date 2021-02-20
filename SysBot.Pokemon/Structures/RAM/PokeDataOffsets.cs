@@ -11,6 +11,9 @@ namespace SysBot.Pokemon
         public const uint IsConnectedOffset = 0x30c7cca8;
         public const uint TextSpeedOffset = 0x450690A0;
         public const uint ItemTreasureAddress = 0x45068970;
+        public const uint LastUsedBallOffset = 0x4C428C80;
+        public const uint PokeBallOffset = 0x45067B88; // 0x74 size
+        public const uint XYCoordinates = 0x1D5B690; // +0x8 for Y
 
         // Raid Offsets
         // The dex number of the Pokémon the host currently has chosen. 
