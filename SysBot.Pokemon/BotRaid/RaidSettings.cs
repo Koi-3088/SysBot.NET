@@ -23,6 +23,9 @@ namespace SysBot.Pokemon
         [Category(Hosting), Description("Echoes each party member as they lock into a Pokémon.")]
         public bool EchoPartyReady { get; set; } = false;
 
+        [Category(Hosting), Description("Echoes when we invite others and when we start the raid.")]
+        public bool EchoRaidNotifications { get; set; } = false;
+
         [Category(Hosting), Description("Allows the bot to echo your Friend Code if set.")]
         public string FriendCode { get; set; } = string.Empty;
 
@@ -49,6 +52,18 @@ namespace SysBot.Pokemon
 
         [Category(Hosting), Description("The Nintendo Switch profile you are using to manage friends. For example, set this to 2 if you are using the second profile.")]
         public int ProfileNumber { get; set; } = 1;
+
+        [Category(Hosting), Description("When set, the bot will create a text file with current Raid Code for OBS.")]
+        public bool RaidLog { get; set; } = false;
+
+        [Category(Hosting), Description("If using USB-Botbase, quit out the raid by toggling airplane mode. For regular hosting and soft-lock AutoRoll.")]
+        public bool AirplaneQuitout { get; set; } = false;
+
+        [Category(Hosting), Description("When set, the bot will roll species and set date to 2000, resetting it once it reaches 2060.")]
+        public bool AutoRoll { get; set; } = false;
+
+        [Category(Hosting), Description("If AutoRoll enabled, specify Pokémon species to stop rolling on and to soft-lock host via airplane mode.")]
+        public Species AutoRollSpecies { get; set; } = Species.None;
 
         /// <summary>
         /// Gets a random trade code based on the range settings.

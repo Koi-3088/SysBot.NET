@@ -4,6 +4,7 @@ using SysBot.Base;
 using System;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Linq;
 using static SysBot.Base.SwitchButton;
 using static SysBot.Pokemon.PokeDataOffsets;
 
@@ -236,7 +237,7 @@ namespace SysBot.Pokemon
             }
 
             // Confirm Box 1 Slot 1
-            if (poke.Type == PokeTradeType.Specific)
+            if (poke.Type == PokeTradeType.Specific || poke.Type == PokeTradeType.TradeCord || poke.Type == PokeTradeType.Giveaway)
             {
                 for (int i = 0; i < 5; i++)
                     await Click(A, 0_500, token).ConfigureAwait(false);
@@ -283,6 +284,90 @@ namespace SysBot.Pokemon
                 for (int i = 0; i < 5; i++)
                     await Click(A, 0_500, token).ConfigureAwait(false);
             }
+            else if (poke.Type == PokeTradeType.FixOT)
+            {
+                var clone = (PK8)pk.Clone();
+                var adOT = System.Text.RegularExpressions.Regex.Match(clone.OT_Name, @"(YT$)|(YT\w*$)|(Lab$)|(\.\w*)|(TV$)|(PKHeX)|(FB:)|(SysBot)|(AuSLove)|(ShinyMart)|(Blainette)").Value != ""
+                    || System.Text.RegularExpressions.Regex.Match(clone.Nickname, @"(YT$)|(YT\w*$)|(Lab$)|(\.\w*)|(TV$)|(PKHeX)|(FB:)|(SysBot)|(AuSLove)|(ShinyMart)|(Blainette)").Value != "";
+
+                var extraInfo = $"\nBall: {(Ball)clone.Ball}\nShiny: {(clone.ShinyXor == 0 ? "Square" : clone.ShinyXor <= 16 ? "Star" : "No")}{(clone.FatefulEncounter ? "" : $"\nOT: {TrainerName}")}";
+                var laInit = new LegalityAnalysis(clone);
+                if (laInit.Valid && adOT)
+                {
+                    clone.OT_Name = clone.FatefulEncounter ? clone.OT_Name : $"{TrainerName}";
+                    clone.PKRS_Infected = false;
+                    clone.PKRS_Cured = false;
+                    clone.PKRS_Days = 0;
+                    clone.PKRS_Strain = 0;
+                }
+                else if (!laInit.Valid)
+                {
+                    Log($"FixOT request has detected an invalid Pokémon from {poke.Trainer.TrainerName}: {(Species)clone.Species}");
+                    if (DumpSetting.Dump)
+                        DumpPokemon(DumpSetting.DumpFolder, "hacked", clone);
+
+                    poke.SendNotification(this, $"```fix\nShown Pokémon is invalid. Attempting to regenerate... \n{laInit.Report()}```");
+                    if (clone.FatefulEncounter)
+                    {
+                        clone.SetDefaultNickname(laInit);
+                        var mg = EncounterEvent.GetAllEvents().Where(x => x.Species == clone.Species && x.Form == clone.Form && x.IsShiny == clone.IsShiny && x.OT_Name == clone.OT_Name).ToList();
+                        if (mg.Count > 0)
+                            clone = TradeExtensions.CherishHandler(mg.First());
+                        else clone = (PK8)AutoLegalityWrapper.GetTrainerInfo(8).GetLegal(AutoLegalityWrapper.GetTemplate(new ShowdownSet(ShowdownParsing.GetShowdownText(clone) + extraInfo)), out _);
+                    }
+                    else clone = (PK8)AutoLegalityWrapper.GetTrainerInfo(8).GetLegal(AutoLegalityWrapper.GetTemplate(new ShowdownSet(ShowdownParsing.GetShowdownText(clone) + extraInfo)), out _);
+                    var laRegen = new LegalityAnalysis(clone);
+                    if (laRegen.Valid)
+                        poke.SendNotification(this, $"```fix\nRegenerated and legalized your {(Species)clone.Species}!```");
+                }
+                else if (!adOT && laInit.Valid)
+                {
+                    poke.SendNotification(this, "```fix\nNo ad detected in Nickname or OT, and the Pokémon is legal. Exiting trade.```");
+                    await ExitTrade(Hub.Config, true, token).ConfigureAwait(false);
+                    return PokeTradeResult.Aborted;
+                }
+
+                clone = (PK8)TradeExtensions.TrashBytes(clone, new LegalityAnalysis(clone));
+                var la = new LegalityAnalysis(clone);
+                if (!la.Valid)
+                {
+                    var report = la.Report();
+                    Log(report);
+                    poke.SendNotification(this, "This Pokémon is not legal per PKHeX's legality checks. I was unable to fix this. Exiting trade.");
+                    poke.SendNotification(this, report);
+                    await ExitTrade(Hub.Config, true, token).ConfigureAwait(false);
+                    return PokeTradeResult.IllegalTrade;
+                }
+
+                if (Hub.Config.Legality.ResetHOMETracker)
+                    clone.Tracker = 0;
+
+                poke.SendNotification(this, $"```fix\nNow confirm the trade!```");
+                Log($"{(!laInit.Valid ? "Legalized" : "Fixed Nickname/OT for")} {(Species)clone.Species}!");
+
+                bool changed = await ReadUntilChanged(LinkTradePartnerPokemonOffset, oldEC, 10_000, 0_200, false, token).ConfigureAwait(false);
+                if (changed)
+                {
+                    Log($"{poke.Trainer.TrainerName} changed the shown Pokémon ({(Species)clone.Species})");
+                    poke.SendNotification(this, $"```fix\nSend away the originally shown Pokémon, please.```");
+                    changed = !await ReadUntilChanged(LinkTradePartnerPokemonOffset, oldEC, 15_000, 0_200, true, token).ConfigureAwait(false);
+                }
+
+                var pk2 = await ReadUntilPresent(LinkTradePartnerPokemonOffset, 3_000, 1_000, token).ConfigureAwait(false);
+                if (changed || pk2 == null || SearchUtil.HashByDetails(pk2) != SearchUtil.HashByDetails(pk))
+                {
+                    Log("Trading partner did not wish to send away their ad-mon.");
+                    await ExitTrade(Hub.Config, true, token).ConfigureAwait(false);
+                    return PokeTradeResult.TrainerTooSlow;
+                }
+
+                await Click(A, 0_800, token).ConfigureAwait(false);
+                await SetBoxPokemon(clone, InjectBox, InjectSlot, token, sav).ConfigureAwait(false);
+                pkm = clone;
+
+                for (int i = 0; i < 5; i++)
+                    await Click(A, 0_500, token).ConfigureAwait(false);
+            }
             else if (poke.Type == PokeTradeType.Clone)
             {
                 // Inject the shown Pokémon.
@@ -296,7 +381,7 @@ namespace SysBot.Pokemon
                 {
                     Log($"Clone request (from {poke.Trainer.TrainerName}) has detected an invalid Pokémon: {(Species)clone.Species}.");
                     if (DumpSetting.Dump)
-                        DumpPokemon(DumpSetting.DumpFolder, "hacked", pk);
+                        DumpPokemon(DumpSetting.DumpFolder, "hacked", clone);
 
                     var report = la.Report();
                     Log(report);
@@ -333,7 +418,7 @@ namespace SysBot.Pokemon
 
                 await Click(A, 0_800, token).ConfigureAwait(false);
                 await SetBoxPokemon(clone, InjectBox, InjectSlot, token, sav).ConfigureAwait(false);
-                pkm = pk;
+                pkm = clone;
 
                 for (int i = 0; i < 5; i++)
                     await Click(A, 0_500, token).ConfigureAwait(false);
@@ -365,7 +450,7 @@ namespace SysBot.Pokemon
             // Trade was Successful!
             var traded = await ReadBoxPokemon(InjectBox, InjectSlot, token).ConfigureAwait(false);
             // Pokémon in b1s1 is same as the one they were supposed to receive (was never sent).
-            if (SearchUtil.HashByDetails(traded) == SearchUtil.HashByDetails(pkm))
+            if (poke.Type != PokeTradeType.FixOT && SearchUtil.HashByDetails(traded) == SearchUtil.HashByDetails(pkm))
             {
                 Log("User did not complete the trade.");
                 return PokeTradeResult.TrainerTooSlow;
@@ -382,6 +467,12 @@ namespace SysBot.Pokemon
                     counts.AddCompletedDistribution();
                 else if (poke.Type == PokeTradeType.Clone)
                     counts.AddCompletedClones();
+                else if (poke.Type == PokeTradeType.FixOT)
+                    counts.AddCompletedFixOTs();
+                else if (poke.Type == PokeTradeType.TradeCord)
+                    counts.AddCompletedTradeCords();
+                else if (poke.Type == PokeTradeType.Giveaway)
+                    counts.AddCompletedGiveaways();
                 else
                     Hub.Counts.AddCompletedTrade();
 
@@ -389,7 +480,7 @@ namespace SysBot.Pokemon
                 {
                     var subfolder = poke.Type.ToString().ToLower();
                     DumpPokemon(DumpSetting.DumpFolder, subfolder, traded); // received
-                    if (poke.Type == PokeTradeType.Specific || poke.Type == PokeTradeType.Clone)
+                    if (poke.Type == PokeTradeType.Specific || poke.Type == PokeTradeType.Clone || poke.Type == PokeTradeType.FixOT || poke.Type == PokeTradeType.TradeCord || poke.Type == PokeTradeType.Giveaway)
                         DumpPokemon(DumpSetting.DumpFolder, "traded", pkm); // sent to partner
                 }
             }
@@ -514,7 +605,7 @@ namespace SysBot.Pokemon
 
             // Wait for an offer...
             var oldEC = await Connection.ReadBytesAsync(SurpriseTradeSearchOffset, 4, token).ConfigureAwait(false);
-            var partnerFound = await ReadUntilChanged(SurpriseTradeSearchOffset, oldEC, Hub.Config.Trade.TradeWaitTime * 1_000, 0_200, false, token).ConfigureAwait(false);
+            var partnerFound = Hub.Config.Trade.SpinTrade && Config.Connection.Protocol == SwitchProtocol.USB ? await SpinTrade(SurpriseTradeSearchOffset, oldEC, Hub.Config.Trade.TradeWaitTime * 1_000, 0_200, false, token).ConfigureAwait(false) : await ReadUntilChanged(SurpriseTradeSearchOffset, oldEC, Hub.Config.Trade.TradeWaitTime * 1_000, 0_200, false, token).ConfigureAwait(false);
 
             if (token.IsCancellationRequested)
                 return PokeTradeResult.Aborted;
@@ -551,7 +642,11 @@ namespace SysBot.Pokemon
                 return PokeTradeResult.Aborted;
 
             if (await IsOnOverworld(Hub.Config, token).ConfigureAwait(false))
+            {
+                if (Hub.Config.Trade.SpinTrade && Config.Connection.Protocol == SwitchProtocol.USB)
+                    await SpinCorrection(token).ConfigureAwait(false);
                 Log("Trade complete!");
+            }
             else
                 await ExitTrade(Hub.Config, true, token).ConfigureAwait(false);
 
@@ -663,7 +758,7 @@ namespace SysBot.Pokemon
         private async Task<bool> WaitForPokemonChanged(uint offset, int waitms, int waitInterval, CancellationToken token)
         {
             var oldEC = await Connection.ReadBytesAsync(offset, 4, token).ConfigureAwait(false);
-            return await ReadUntilChanged(offset, oldEC, waitms, waitInterval, false, token).ConfigureAwait(false);
+            return Hub.Config.Trade.SpinTrade && Config.Connection.Protocol == SwitchProtocol.USB ? await SpinTrade(offset, oldEC, waitms, waitInterval, false, token).ConfigureAwait(false) : await ReadUntilChanged(offset, oldEC, waitms, waitInterval, false, token).ConfigureAwait(false);
         }
     }
 }

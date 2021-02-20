@@ -57,12 +57,20 @@ namespace SysBot.Pokemon.Discord
             }
 
             var sav = AutoLegalityWrapper.GetTrainerInfo(gen);
-
             var pkm = sav.GetLegal(template, out var result);
+
+            if (Info.Hub.Config.Trade.DittoTrade && pkm.Species == 132)
+                TradeExtensions.DittoTrade(pkm);
+
+            if (Info.Hub.Config.Trade.EggTrade && pkm.Nickname == "Egg")
+                TradeExtensions.EggTrade((PK8)pkm);
+
             var la = new LegalityAnalysis(pkm);
             var spec = GameInfo.Strings.Species[template.Species];
             pkm = PKMConverter.ConvertToType(pkm, typeof(PK8), out _) ?? pkm;
-            if (pkm is not PK8 || !la.Valid)
+            if (Info.Hub.Config.Trade.Memes && await TrollAsync(pkm is not PK8 || !la.Valid, template).ConfigureAwait(false))
+            	return;
+            else if (pkm is not PK8 || !la.Valid)
             {
                 var reason = result == "Timeout" ? "That set took too long to generate." : "I wasn't able to create something from that.";
                 var imsg = $"Oops! {reason} Here's my best attempt for that {spec}!";
@@ -162,9 +170,10 @@ namespace SysBot.Pokemon.Discord
 
         private async Task AddTradeToQueueAsync(int code, string trainerName, PK8 pk8, RequestSignificance sig, SocketUser usr)
         {
-            if (!pk8.CanBeTraded())
+            if (!pk8.CanBeTraded() || !new TradeExtensions(Info.Hub).IsItemMule(pk8))
             {
-                await ReplyAsync("Provided Pokémon content is blocked from trading!").ConfigureAwait(false);
+                var msg = "Provided Pokémon content is blocked from trading!";
+                await ReplyAsync($"{(!Info.Hub.Config.Trade.ItemMuleCustomMessage.Equals(string.Empty) && !Info.Hub.Config.Trade.ItemMuleSpecies.Equals(Species.None) ? Info.Hub.Config.Trade.ItemMuleCustomMessage : msg)}").ConfigureAwait(false);
                 return;
             }
 
@@ -176,6 +185,26 @@ namespace SysBot.Pokemon.Discord
             }
 
             await Context.AddToQueueAsync(code, trainerName, sig, pk8, PokeRoutineType.LinkTrade, PokeTradeType.Specific, usr).ConfigureAwait(false);
+        }
+
+        private async Task<bool> TrollAsync(bool invalid, IBattleTemplate set)
+        {
+            var rng = new System.Random();
+            var path = Info.Hub.Config.Trade.MemeFileNames.Split(',');
+            var msg = $"Oops! I wasn't able to create that {GameInfo.Strings.Species[set.Species]}. Here's a meme instead!\n";
+
+            if (path.Length == 0)
+                path = new string[] { "https://i.imgur.com/qaCwr09.png" }; //If memes enabled but none provided, use a default one.
+
+            if (invalid || !ItemRestrictions.IsHeldItemAllowed(set.HeldItem, 8) || (Info.Hub.Config.Trade.ItemMuleSpecies != Species.None && set.Shiny) || Info.Hub.Config.Trade.EggTrade && set.Nickname == "Egg" && set.Species >= 888
+                || (Info.Hub.Config.Trade.ItemMuleSpecies != Species.None && GameInfo.Strings.Species[set.Species] != Info.Hub.Config.Trade.ItemMuleSpecies.ToString() && !(Info.Hub.Config.Trade.DittoTrade && set.Species == 132 || Info.Hub.Config.Trade.EggTrade && set.Nickname == "Egg" && set.Species < 888)))
+            {
+                if (Info.Hub.Config.Trade.MemeFileNames.Contains(".com") || path.Length == 0)
+                    _ = invalid == true ? await Context.Channel.SendMessageAsync($"{msg}{path[rng.Next(path.Length)]}").ConfigureAwait(false) : await Context.Channel.SendMessageAsync($"{path[rng.Next(path.Length)]}").ConfigureAwait(false);
+                else _ = invalid == true ? await Context.Channel.SendMessageAsync($"{msg}{path[rng.Next(path.Length)]}").ConfigureAwait(false) : await Context.Channel.SendMessageAsync($"{path[rng.Next(path.Length)]}").ConfigureAwait(false);
+                return true;
+            }
+            return false;
         }
     }
 }

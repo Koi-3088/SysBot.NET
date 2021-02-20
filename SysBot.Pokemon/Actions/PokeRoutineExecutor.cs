@@ -2,8 +2,8 @@
 using SysBot.Base;
 using System;
 using System.Diagnostics;
-using System.IO;
 using System.Linq;
+using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
 using static SysBot.Base.SwitchButton;
@@ -39,6 +39,20 @@ namespace SysBot.Pokemon
         {
             var data = await Connection.ReadBytesAsync(SurpriseTradePartnerPokemonOffset, BoxFormatSlotSize, token).ConfigureAwait(false);
             return new PK8(data);
+        }
+
+        public async Task SetLastUsedBall(Ball ball, CancellationToken token)
+        {
+            if (ball >= Ball.Fast && ball <= Ball.Beast)
+            {
+                new EncounterCount().BallIndex(ball, out int result);
+                var apriData = BitConverter.GetBytes(result);
+                await Connection.WriteBytesAsync(apriData, LastUsedBallOffset, token).ConfigureAwait(false);
+                return;
+            }
+
+            var data = BitConverter.GetBytes((int)ball);
+            await Connection.WriteBytesAsync(data, LastUsedBallOffset, token).ConfigureAwait(false);
         }
 
         public async Task SetBoxPokemon(PK8 pkm, int box, int slot, CancellationToken token, SAV8? sav = null)
@@ -246,6 +260,9 @@ namespace SysBot.Pokemon
                 await Click(B, 1_000, token).ConfigureAwait(false);
                 await Click(A, 1_000, token).ConfigureAwait(false);
             }
+
+            if (config.Trade.SpinTrade && Config.Connection.Protocol == SwitchProtocol.USB)
+                await SpinCorrection(token).ConfigureAwait(false);
         }
 
         public async Task ExitSeedCheckTrade(PokeTradeHubConfig config, CancellationToken token)
@@ -263,6 +280,8 @@ namespace SysBot.Pokemon
             }
 
             await Task.Delay(3_000, token).ConfigureAwait(false);
+            if (config.Trade.SpinTrade && Config.Connection.Protocol == SwitchProtocol.USB)
+                await SpinCorrection(token).ConfigureAwait(false);
         }
 
         public async Task ReOpenGame(PokeTradeHubConfig config, CancellationToken token)
@@ -301,7 +320,7 @@ namespace SysBot.Pokemon
             Log("Closed out of the game!");
         }
 
-        public async Task StartGame(PokeTradeHubConfig config, CancellationToken token)
+        public async Task StartGame(PokeTradeHubConfig config, CancellationToken token, bool softReset = false)
         {
             // Open game.
             await Click(A, 1_000 + config.Timings.ExtraTimeLoadProfile, token).ConfigureAwait(false);
@@ -328,10 +347,11 @@ namespace SysBot.Pokemon
             for (int i = 0; i < 5; i++)
                 await Click(A, 1_000, token).ConfigureAwait(false);
 
-            while (!await IsOnOverworld(config, token).ConfigureAwait(false))
+            while (!await IsOnOverworld(config, token).ConfigureAwait(false) && !softReset)
                 await Task.Delay(2_000, token).ConfigureAwait(false);
 
-            Log("Back in the overworld!");
+            if (!softReset)
+                Log("Back in the overworld!");
         }
 
         public async Task<bool> CheckIfSearchingForLinkTradePartner(CancellationToken token)
@@ -456,6 +476,71 @@ namespace SysBot.Pokemon
                 ConsoleLanguageParameter.Korean => OverworldOffsetKorean,
                 _ => OverworldOffset,
             };
+        }
+
+        public async Task ToggleAirplane(int delay, CancellationToken token)
+        {
+            await HoldUSB(HOME, 2_500, 2_000 + delay, token).ConfigureAwait(false);
+            for (int i = 0; i < 4; i++)
+                await Click(DDOWN, 0_100, token).ConfigureAwait(false);
+            await Click(A, 2_000, token).ConfigureAwait(false);
+            await Click(A, 0_500, token).ConfigureAwait(false);
+        }
+
+        public async Task<bool> SpinTrade(uint offset, byte[] comparison, int waitms, int waitInterval, bool match, CancellationToken token)
+        {
+            // Revival of Red's SpinTrade
+            if (TradeExtensions.XCoordStart == 0 || TradeExtensions.YCoordStart == 0) // Read initial X and Y position for drift correction
+            {
+                TradeExtensions.XCoordStart = BitConverter.ToInt32(await Connection.ReadBytesAsync(XYCoordinates, 4, token).ConfigureAwait(false), 0);
+                TradeExtensions.YCoordStart = BitConverter.ToInt32(await Connection.ReadBytesAsync(XYCoordinates + 0x8, 4, token).ConfigureAwait(false), 0);
+            }
+
+            await Connection.SendAsync(SwitchCommand.Configure(SwitchConfigureParameter.mainLoopSleepTime, 10), token).ConfigureAwait(false);
+            var sw = new Stopwatch();
+            sw.Start();
+
+            do
+            {
+                var result = await Connection.ReadBytesAsync(offset, comparison.Length, token).ConfigureAwait(false);
+                if (match == result.SequenceEqual(comparison))
+                {
+                    await Connection.SendAsync(SwitchCommand.ResetStick(SwitchStick.LEFT), token).ConfigureAwait(false);
+                    await Connection.SendAsync(SwitchCommand.Configure(SwitchConfigureParameter.mainLoopSleepTime, 50), token).ConfigureAwait(false);
+                    await Task.Delay(waitInterval, token).ConfigureAwait(false);
+                    return true;
+                }
+
+                if (sw.ElapsedMilliseconds < waitms - 4_000) // Give it ample time to finish the pirouette end animation before correcting position
+                {
+                    await SetStick(SwitchStick.LEFT, -3_300, 0, 75, token).ConfigureAwait(false); // ←
+                    await SetStick(SwitchStick.LEFT, 0, -3_300, 75, token).ConfigureAwait(false); // ↓
+                    await SetStick(SwitchStick.LEFT, 3_300, 0, 75, token).ConfigureAwait(false); // →
+                    await SetStick(SwitchStick.LEFT, 0, 3_300, 60, token).ConfigureAwait(false); // ↑
+                }
+                else await Connection.SendAsync(SwitchCommand.ResetStick(SwitchStick.LEFT), token).ConfigureAwait(false);
+            } while (sw.ElapsedMilliseconds < waitms);
+
+            await Task.Delay(waitInterval, token).ConfigureAwait(false);
+            await SpinCorrection(token).ConfigureAwait(false);
+            await Connection.SendAsync(SwitchCommand.Configure(SwitchConfigureParameter.mainLoopSleepTime, 50), token).ConfigureAwait(false);
+
+            return false;
+        }
+
+        public async Task SpinCorrection(CancellationToken token)
+        {
+            var XCorrection = -(BitConverter.ToInt32(await Connection.ReadBytesAsync(XYCoordinates, 4, token).ConfigureAwait(false), 0) - TradeExtensions.XCoordStart);
+            var YCorrection = BitConverter.ToInt32(await Connection.ReadBytesAsync(XYCoordinates + 0x8, 4, token).ConfigureAwait(false), 0) - TradeExtensions.YCoordStart;
+
+            if (XCorrection < 10_000 && XCorrection > -10_000) // If drift is very small, we'll overcorrect. Just ignore.
+                XCorrection = 0;
+            else if (YCorrection < 10_000 && YCorrection > -10_000)
+                YCorrection = 0;
+
+            // Stick magnitude range is between -30_000 and 30_000 whereas coordinates increase faster and by larger amount
+            await SetStick(SwitchStick.LEFT, (short)(_ = XCorrection < -30_000 ? -30_000 : XCorrection > 30_000 ? 30_000 : XCorrection), (short)(_ = YCorrection < -30_000 ? -30_000 : YCorrection > 30_000 ? 30_000 : YCorrection), 150, token).ConfigureAwait(false);
+            await Connection.SendAsync(SwitchCommand.ResetStick(SwitchStick.LEFT), token).ConfigureAwait(false);
         }
     }
 }

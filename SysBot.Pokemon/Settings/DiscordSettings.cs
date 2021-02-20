@@ -41,6 +41,15 @@ namespace SysBot.Pokemon
         [Category(Whitelists), Description("Users with this role are allowed to enter the Clone queue.")]
         public string RoleCanClone { get; set; } = DefaultDisable;
 
+        [Category(Whitelists), Description("Users with this role are allowed to enter the FixOT queue.")]
+        public string RoleCanFixOT { get; set; } = DefaultDisable;
+
+        [Category(Whitelists), Description("Users with this role are allowed to use TradeCord.")]
+        public string RoleCanTradeCord { get; set; } = DefaultDisable;
+        
+        [Category(Whitelists), Description("Users with this role are allowed to use Giveaway.")]
+        public string RoleCanGiveaway { get; set; } = DefaultDisable;
+
         [Category(Whitelists), Description("Users with this role are allowed to enter the Dump queue.")]
         public string RoleCanDump { get; set; } = DefaultDisable;
 

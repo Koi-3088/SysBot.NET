@@ -17,6 +17,13 @@ namespace SysBot.Pokemon.Discord
 
             var template = AutoLegalityWrapper.GetTemplate(set);
             var pkm = sav.GetLegal(template, out var result);
+
+            if (SysCordInstance.Self.Hub.Config.Trade.EggTrade && pkm.Nickname == "Egg")
+                TradeExtensions.EggTrade((PK8)pkm);
+
+            if (SysCordInstance.Self.Hub.Config.Trade.DittoTrade && set.Species == 132)
+                TradeExtensions.DittoTrade(pkm);
+
             var la = new LegalityAnalysis(pkm);
             var spec = GameInfo.Strings.Species[template.Species];
             var reason = result == "Timeout" ? "That set took too long to generate." : "I wasn't able to create something from that.";
