@@ -80,8 +80,8 @@ namespace SysBot.Pokemon.WinForms
             // 
             // FLP_Bots
             // 
-            this.FLP_Bots.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
-            | System.Windows.Forms.AnchorStyles.Left) 
+            this.FLP_Bots.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom)
+            | System.Windows.Forms.AnchorStyles.Left)
             | System.Windows.Forms.AnchorStyles.Right)));
             this.FLP_Bots.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
             this.FLP_Bots.Location = new System.Drawing.Point(0, 32);
@@ -219,7 +219,6 @@ namespace SysBot.Pokemon.WinForms
             this.Controls.Add(this.TC_Main);
             this.Icon = global::SysBot.Pokemon.WinForms.Properties.Resources.icon;
             this.MaximizeBox = false;
-            this.MinimizeBox = false;
             this.Name = "Main";
             this.StartPosition = System.Windows.Forms.FormStartPosition.CenterScreen;
             this.Text = "SysBot: Pokémon";

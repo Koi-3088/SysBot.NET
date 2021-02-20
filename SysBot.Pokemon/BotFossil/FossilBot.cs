@@ -91,6 +91,7 @@ namespace SysBot.Pokemon
                     DumpPokemon(DumpSetting.DumpFolder, "fossil", pk);
 
                 Counts.AddCompletedFossils();
+                TradeExtensions.EncounterLogs(pk);
 
                 if (StopConditionSettings.EncounterFound(pk, DesiredIVs, Hub.Config.StopConditions))
                 {
@@ -102,11 +103,11 @@ namespace SysBot.Pokemon
 
                     if (Hub.Config.Fossil.ContinueAfterMatch)
                     {
-                        Log("Result found! Continuing to collect more fossils.");
+                        Log($"{(!Hub.Config.StopConditions.PingOnMatch.Equals(string.Empty) ? $"<@{Hub.Config.StopConditions.PingOnMatch}>\n" : "")}Result found! Continuing to collect more fossils.");
                     }
                     else
                     {
-                        Log("Result found! Stopping routine execution; restart the bot(s) to search again.");
+                        Log($"{(!Hub.Config.StopConditions.PingOnMatch.Equals(string.Empty) ? $"<@{Hub.Config.StopConditions.PingOnMatch}>\n" : "")}Result found! Stopping routine execution; restart the bot(s) to search again.");
                         await DetachController(token).ConfigureAwait(false);
                         return;
                     }

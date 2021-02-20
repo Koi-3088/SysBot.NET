@@ -92,7 +92,11 @@ namespace SysBot.Pokemon
                 return QueueResultRemove.Removed;
 
             foreach (var detail in details)
+            {
+                if (detail.Type == PokeRoutineType.TradeCord)
+                    TradeExtensions.TradeCordPath.Remove(TradeExtensions.TradeCordPath.FirstOrDefault(x => x.Contains(detail.UserID.ToString())));
                 Remove(detail);
+            }
             return QueueResultRemove.CurrentlyProcessing;
         }
 

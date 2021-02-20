@@ -78,6 +78,7 @@ namespace SysBot.Pokemon
                 encounterCount++;
                 Log($"Encounter: {encounterCount}:{Environment.NewLine}{ShowdownParsing.GetShowdownText(pk)}{Environment.NewLine}");
                 Counts.AddCompletedEggs();
+                TradeExtensions.EncounterLogs(pk);
 
                 if (DumpSetting.Dump && !string.IsNullOrEmpty(DumpSetting.DumpFolder))
                     DumpPokemon(DumpSetting.DumpFolder, "egg", pk);
@@ -86,10 +87,10 @@ namespace SysBot.Pokemon
                 {
                     if (Hub.Config.Egg.ContinueAfterMatch)
                     {
-                        Log("Result found! Continuing to collect more eggs.");
+                        Log($"{(!Hub.Config.StopConditions.PingOnMatch.Equals(string.Empty) ? $"<@{Hub.Config.StopConditions.PingOnMatch}>\n" : "")}Result found! Continuing to collect more eggs.");
                         continue;
                     }
-                    Log("Result found! Stopping routine execution; restart the bot(s) to search again.");
+                    Log($"{(!Hub.Config.StopConditions.PingOnMatch.Equals(string.Empty) ? $"<@{Hub.Config.StopConditions.PingOnMatch}>\n" : "")}Result found! Stopping routine execution; restart the bot(s) to search again.");
                     await DetachController(token).ConfigureAwait(false);
                     return;
                 }
