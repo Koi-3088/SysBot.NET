@@ -18,6 +18,7 @@
         FossilBot,
         RaidBot,
         EncounterBot,
+        DenBot,
 
         RemoteControl,
     }

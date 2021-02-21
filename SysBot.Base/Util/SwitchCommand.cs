@@ -163,5 +163,21 @@ namespace SysBot.Base
         /// <param name="crlf">Line terminator (unused by USB's protocol)</param>
         /// <returns>Encoded command bytes</returns>
         public static byte[] GetHeapBase(bool crlf = true) => Encode("getHeapBase", crlf);
+
+        /// <summary>
+        /// Advances system network clock to advance time by one day at a time.
+        /// </summary>
+        /// <param name="resetAfterNSkips">Day advance amount after which we should reset time to initial time (0 if we shouldn't)</param>
+        /// <param name="resetNTP">Should we use NTP to sync back time (1/0 for true/false, about to be deprecated)</param>
+        /// <param name="crlf">Line terminator (unused by USB's protocol)</param>
+        /// <returns>Encoded command bytes</returns>
+        public static byte[] DaySkip(int resetAfterNSkips, int resetNTP, bool crlf = true) => Encode($"daySkip {resetAfterNSkips} {resetNTP}", crlf);
+
+        /// <summary>
+        /// Sync system network clock with NTP's server.
+        /// </summary>
+        /// <param name="crlf">Line terminator (unused by USB's protocol)</param>
+        /// <returns>Encoded command bytes</returns>
+        public static byte[] ResetTimeNTP(bool crlf = true) => Encode("resetTimeNTP", crlf);
     }
 }

@@ -52,15 +52,6 @@ namespace SysBot.Pokemon
         [Category(Raid), Description("Extra time in milliseconds to enter a lobby for AutoRoll.")]
         public int ExtraTimeLoadLobbyAR { get; set; } = 0;
 
-        [Category(Raid), Description("Extra time in milliseconds to wait after \"Invite Others\" before clicking HOME.")]
-        public int ExtraTimeInviteOthersAR { get; set; } = 0;
-
-        [Category(Raid), Description("Extra time in milliseconds to wait after cancelling a lobby for overworld to load.")]
-        public int ExtraTimeLobbyQuitAR { get; set; } = 0;
-
-        [Category(Raid), Description("Extra time in milliseconds to wait after clicking \"HOME\" after skipping a day.")]
-        public int ExtraTimeDaySkipLobbyReturnAR { get; set; } = 0;
-
         [Category(Raid), Description("Extra time in milliseconds between A button clicks when collecting watts. More than 250ms shouldn't be needed.")]
         public int ExtraTimeAButtonClickAR { get; set; } = 0;
 

@@ -165,7 +165,7 @@ namespace SysBot.Pokemon
             var sav = new SAV8SWSH();
             var info = sav.MyStatus;
             var read = await Connection.ReadBytesAsync(TrainerDataOffset, TrainerDataLength, token).ConfigureAwait(false);
-            read.CopyTo(info.Data);
+            read.CopyTo(info.Data, 0);
             return sav;
         }
 
@@ -541,6 +541,16 @@ namespace SysBot.Pokemon
             // Stick magnitude range is between -30_000 and 30_000 whereas coordinates increase faster and by larger amount
             await SetStick(SwitchStick.LEFT, (short)(_ = XCorrection < -30_000 ? -30_000 : XCorrection > 30_000 ? 30_000 : XCorrection), (short)(_ = YCorrection < -30_000 ? -30_000 : YCorrection > 30_000 ? 30_000 : YCorrection), 150, token).ConfigureAwait(false);
             await Connection.SendAsync(SwitchCommand.ResetStick(SwitchStick.LEFT), token).ConfigureAwait(false);
+        }
+
+        public async Task SaveGame(PokeTradeHubConfig config, CancellationToken token)
+        {
+            Log("Saving the game...");
+            await Click(X, 2_000, token).ConfigureAwait(false);
+            await Click(R, 0_250, token).ConfigureAwait(false);
+            while (!await IsOnOverworld(config, token).ConfigureAwait(false))
+                await Click(A, 0_500, token).ConfigureAwait(false);
+            Log("Game saved!");
         }
     }
 }
