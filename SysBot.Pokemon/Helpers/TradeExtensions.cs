@@ -508,13 +508,21 @@ namespace SysBot.Pokemon
             SerializeInfo(root, file);
         }
 
-        public static T? GetRoot<T>(string file)
+        public static T? GetRoot<T>(string file, TextReader? textReader = null)
         {
             JsonSerializer serializer = new();
-            using TextReader reader = File.OpenText(file);
-            T? root = (T?)serializer.Deserialize(reader, typeof(T));
-            reader.Close();
-            return root;
+            if (textReader == null)
+            {
+                using TextReader reader = File.OpenText(file);
+                T? root = (T?)serializer.Deserialize(reader, typeof(T));
+                reader.Close();
+                return root;
+            }
+            else
+            {
+                T? root = (T?)serializer.Deserialize(textReader, typeof(T));
+                return root;
+            }
         }
 
         public static TCUserInfo GetUserInfo(ulong id, string file)

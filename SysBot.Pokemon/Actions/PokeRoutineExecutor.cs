@@ -542,5 +542,15 @@ namespace SysBot.Pokemon
             await SetStick(SwitchStick.LEFT, (short)(_ = XCorrection < -30_000 ? -30_000 : XCorrection > 30_000 ? 30_000 : XCorrection), (short)(_ = YCorrection < -30_000 ? -30_000 : YCorrection > 30_000 ? 30_000 : YCorrection), 150, token).ConfigureAwait(false);
             await Connection.SendAsync(SwitchCommand.ResetStick(SwitchStick.LEFT), token).ConfigureAwait(false);
         }
+
+        public async Task SaveGame(PokeTradeHubConfig config, CancellationToken token)
+        {
+            Log("Saving the game...");
+            await Click(X, 2_000, token).ConfigureAwait(false);
+            await Click(R, 0_250, token).ConfigureAwait(false);
+            while (!await IsOnOverworld(config, token).ConfigureAwait(false))
+                await Click(A, 0_500, token).ConfigureAwait(false);
+            Log("Game saved!");
+        }
     }
 }
