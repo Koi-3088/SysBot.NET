@@ -67,5 +67,8 @@ namespace SysBot.Base
             var cmd = SwitchCommand.Configure(SwitchConfigureParameter.echoCommands, value ? 1 : 0, UseCRLF);
             await Connection.SendAsync(cmd, token).ConfigureAwait(false);
         }
+
+        public async Task DaySkip(int resetAfterNSkips, int resetNTP, CancellationToken token) => await Connection.SendAsync(SwitchCommand.DaySkip(resetAfterNSkips, resetNTP, UseCRLF), token).ConfigureAwait(false);
+        public async Task ResetNTP(CancellationToken token) => await Connection.SendAsync(SwitchCommand.ResetTimeNTP(UseCRLF), token).ConfigureAwait(false);
     }
 }
