@@ -258,6 +258,7 @@ namespace SysBot.Pokemon
                 "Indeedee" => _ = specificEgg && dittoLoc == 1 ? FormOutput(876, pkm2.Form, out _) : specificEgg && dittoLoc == 2 ? FormOutput(876, pkm1.Form, out _) : FormOutput(876, Random.Next(2), out _),
                 "Nidoran" => _ = specificEgg && dittoLoc == 1 ? (evo2 == 32 ? "-M" : "-F") : specificEgg && dittoLoc == 2 ? (evo1 == 32 ? "-M" : "-F") : (Random.Next(2) == 0 ? "-M" : "-F"),
                 "Meowth" => _ = FormOutput(speciesRngID, specificEgg && (pkm1.Species == 863 || pkm2.Species == 863) ? 2 : specificEgg && dittoLoc == 1 ? pkm2.Form : specificEgg && dittoLoc == 2 ? pkm1.Form : Random.Next(forms.Length), out _),
+                "Yamask" => FormOutput(speciesRngID, specificEgg && (pkm1.Species == 867 || pkm2.Species == 867) ? 1 : specificEgg && dittoLoc == 1 ? pkm2.Form : specificEgg && dittoLoc == 2 ? pkm1.Form : Random.Next(forms.Length), out _),
                 "Sinistea" or "Milcery" => "",
                 _ => FormOutput(speciesRngID, specificEgg && pkm1.Form == pkm2.Form ? pkm1.Form : specificEgg && dittoLoc == 1 ? pkm2.Form : specificEgg && dittoLoc == 2 ? pkm1.Form : Random.Next(forms.Length), out _),
             };
@@ -472,10 +473,11 @@ namespace SysBot.Pokemon
                 {
                     switch (invalid.Identifier)
                     {
-                        case CheckIdentifier.GameOrigin: _ = pkm.Version == pkm.MinGameID ? pkm.Version += 1 : pkm.Version -= 1; break;
+                        case CheckIdentifier.IVs: pkm.IVs = pkm.FlawlessIVCount < 3 ? pkm.SetRandomIVs(3) : pkm.FlawlessIVCount < 4 ? pkm.SetRandomIVs(4) : pkm.SetRandomIVs(5); break;
+                        case CheckIdentifier.GameOrigin: pkm.Version = (int)la.EncounterMatch.Version; break;
                         case CheckIdentifier.Form: pkm.HeldItem = pkm.Species == (int)Species.Giratina && pkm.Form == 1 ? pkm.HeldItem = 112 : pkm.HeldItem; break;
                         case CheckIdentifier.Nickname: CommonEdits.SetDefaultNickname(pkm, la); break;
-                        case CheckIdentifier.Memory: pkm.CurrentHandler = pkm.CurrentHandler == 0 ? pkm.CurrentHandler = 1 : pkm.CurrentHandler = 0; pkm.SetHandlerandMemory(AutoLegalityWrapper.GetTrainerInfo(8)); pkm.SetFriendship(la.EncounterMatch); break;
+                        case CheckIdentifier.Memory: pkm.SetHandlerandMemory(AutoLegalityWrapper.GetTrainerInfo(8)); pkm.SetFriendship(la.EncounterMatch); break;
                         case CheckIdentifier.Ability: pkm.AbilityNumber = pkm.AbilityNumber == 4 ? pkm.AbilityNumber = 1 : pkm.AbilityNumber; pkm.RefreshAbility(pkm.AbilityNumber); break;
                         case CheckIdentifier.Language: pkm.Language = pkm.Language == 0 ? 2 : pkm.Language == 2 ? 1 : pkm.Language; pkm.ClearNickname(); break;
                         case CheckIdentifier.Shiny: _ = pkm.ShinyXor == 0 ? CommonEdits.SetShiny(pkm, Shiny.AlwaysStar) : pkm.ShinyXor <= 16 ? CommonEdits.SetShiny(pkm, Shiny.AlwaysSquare) : CommonEdits.SetShiny(pkm, Shiny.Never); break;
