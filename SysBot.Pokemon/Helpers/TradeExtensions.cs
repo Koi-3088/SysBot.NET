@@ -306,9 +306,6 @@ namespace SysBot.Pokemon
 
         public static void DittoTrade(PKM pk8)
         {
-            if (pk8.IsNicknamed == false)
-                return;
-
             var dittoStats = new string[] { "ATK", "SPE", "SPA" };
             pk8.StatNature = pk8.Nature;
             pk8.SetAbility(7);
@@ -589,11 +586,8 @@ namespace SysBot.Pokemon
             }
 
             var entries = TradeCordPath.FindAll(x => x.Contains(id));
-            if (entries.Count > 0)
-            {
-                foreach (var entry in entries)
-                    TradeCordPath.Remove(entry);
-            }
+            for (int i = 0; i < entries.Count; i++)
+                TradeCordPath.Remove(entries[i]);
         }
     }
 }

@@ -291,8 +291,11 @@ namespace SysBot.Pokemon
                 File.Create(jsonName).Close();
                 var text = File.ReadAllText(file).Split('\n');
                 var tables = new NestHoleDistributionEncounterTable();
-                for (int i = 1; i < text.Length; i++)
+                for (int i = 0; i < text.Length; i++)
                 {
+                    if (i == 0)
+                        continue;
+
                     var entry = text[i].Split('	');
                     var probSplit = entry[15].Split('|');
                     var prob = new uint[5];
