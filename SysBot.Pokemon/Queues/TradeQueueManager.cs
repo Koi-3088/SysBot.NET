@@ -34,8 +34,6 @@ namespace SysBot.Pokemon
             {
                 PokeRoutineType.SeedCheck => Seed,
                 PokeRoutineType.Clone => Clone,
-                PokeRoutineType.FixOT => FixOT,
-                PokeRoutineType.TradeCord => TradeCord,
                 PokeRoutineType.Dump => Dump,
                 _ => Trade,
             };
@@ -129,10 +127,6 @@ namespace SysBot.Pokemon
             if (TryDequeueInternal(PokeRoutineType.SeedCheck, out detail, out priority))
                 return true;
             if (TryDequeueInternal(PokeRoutineType.Clone, out detail, out priority))
-                return true;
-            if (TryDequeueInternal(PokeRoutineType.FixOT, out detail, out priority))
-                return true;
-            if (TryDequeueInternal(PokeRoutineType.TradeCord, out detail, out priority))
                 return true;
             if (TryDequeueInternal(PokeRoutineType.Dump, out detail, out priority))
                 return true;

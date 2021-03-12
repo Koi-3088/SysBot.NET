@@ -109,7 +109,7 @@ namespace SysBot.Pokemon.Discord
         {
             var code = Info.GetRandomTradeCode();
             var sig = Context.User.GetFavor();
-            await Context.AddToQueueAsync(code, Context.User.Username, sig, new PK8(), PokeRoutineType.FixOT, PokeTradeType.FixOT).ConfigureAwait(false);
+            await Context.AddToQueueAsync(code, Context.User.Username, sig, new PK8(), PokeRoutineType.FlexTrade, PokeTradeType.FixOT).ConfigureAwait(false);
         }
 
         [Command("fixOT")]
@@ -119,41 +119,7 @@ namespace SysBot.Pokemon.Discord
         public async Task FixAdOT([Summary("Trade Code")] int code)
         {
             var sig = Context.User.GetFavor();
-            await Context.AddToQueueAsync(code, Context.User.Username, sig, new PK8(), PokeRoutineType.FixOT, PokeTradeType.FixOT).ConfigureAwait(false);
-        }
-
-        [Command("fixOTList")]
-        [Alias("fl", "fq")]
-        [Summary("Prints the users in the FixOT queue.")]
-        [RequireSudo]
-        public async Task GetFixListAsync()
-        {
-            string msg = Info.GetTradeList(PokeRoutineType.FixOT);
-            var embed = new EmbedBuilder();
-            embed.AddField(x =>
-            {
-                x.Name = "Pending Trades";
-                x.Value = msg;
-                x.IsInline = false;
-            });
-            await ReplyAsync("These are the users who are currently waiting:", embed: embed.Build()).ConfigureAwait(false);
-        }
-
-        [Command("TradeCordList")]
-        [Alias("tcl", "tcq")]
-        [Summary("Prints users in the TradeCord queue.")]
-        [RequireSudo]
-        public async Task GetTradeCordListAsync()
-        {
-            string msg = Info.GetTradeList(PokeRoutineType.TradeCord);
-            var embed = new EmbedBuilder();
-            embed.AddField(x =>
-            {
-                x.Name = "Pending TradeCord Trades";
-                x.Value = msg;
-                x.IsInline = false;
-            });
-            await ReplyAsync("These are the users who are currently waiting:", embed: embed.Build()).ConfigureAwait(false);
+            await Context.AddToQueueAsync(code, Context.User.Username, sig, new PK8(), PokeRoutineType.FlexTrade, PokeTradeType.FixOT).ConfigureAwait(false);
         }
 
         [Command("TradeCordCatch")]
@@ -210,7 +176,10 @@ namespace SysBot.Pokemon.Discord
                 bool melmetalHack = TCRng.SpeciesRNG == (int)Species.Melmetal && TCRng.GmaxRNG >= 100 - Info.Hub.Config.TradeCord.GmaxRate;
                 if ((TradeExtensions.CherishOnly.Contains(TCRng.SpeciesRNG) || TCRng.CherishRng >= 100 - Info.Hub.Config.TradeCord.CherishRate || MGRngEvent != default || melmetalHack) && mgRng != default)
                 {
-                    TCRng.CatchPKM = TradeExtensions.CherishHandler(mgRng);
+                    Enum.TryParse(TCInfo.OTGender, out Gender gender);
+                    Enum.TryParse(TCInfo.Language, out LanguageID language);
+                    var info = !trainerInfo.Contains("") ? new SimpleTrainerInfo { Gender = (int)gender, Language = (int)language, OT = TCInfo.OTName, TID = TCInfo.TID, SID = TCInfo.SID } : AutoLegalityWrapper.GetTrainerInfo(8);
+                    TCRng.CatchPKM = TradeExtensions.CherishHandler(mgRng, info);
                     TradeExtensions.LegalityAttempt(TCRng.CatchPKM);
                 }
                 else
@@ -277,7 +246,7 @@ namespace SysBot.Pokemon.Discord
             TradeExtensions.TradeCordPath.Add(match.Path);
             TradeExtensions.UpdateUserInfo(TCInfo, InfoPath);
             var sig = Context.User.GetFavor();
-            await Context.AddToQueueAsync(code, Context.User.Username, sig, (PK8)pkm, PokeRoutineType.TradeCord, PokeTradeType.TradeCord).ConfigureAwait(false);
+            await Context.AddToQueueAsync(code, Context.User.Username, sig, (PK8)pkm, PokeRoutineType.FlexTrade, PokeTradeType.TradeCord).ConfigureAwait(false);
         }
 
         [Command("TradeCord")]
@@ -373,7 +342,7 @@ namespace SysBot.Pokemon.Discord
             }
 
             bool canGmax = new ShowdownSet(ShowdownParsing.GetShowdownText(pkm)).CanGigantamax;
-            var pokeImg = PokeImg(pkm, canGmax, pkm.Species == (int)Species.Alcremie ? pkm.Data[0xE4] : 0);
+            var pokeImg = PokeImg(pkm, canGmax, (uint)(pkm.Species == (int)Species.Alcremie ? pkm.Data[0xE4] : 0));
             var embed = new EmbedBuilder { Color = pkm.IsShiny ? Color.Blue : Color.DarkBlue, ThumbnailUrl = pokeImg }.WithFooter(x => { x.Text = $"\n\n{TradeExtensions.DexFlavor(pkm.Species)}"; x.IconUrl = "https://i.imgur.com/nXNBrlr.png"; });
             var name = $"{Context.User.Username}'s {(match.Shiny ? "★" : "")}{match.Species}{match.Form} [ID: {match.ID}]";
             var value = $"\n\n{ReusableActions.GetFormattedShowdownText(pkm)}";
@@ -550,7 +519,7 @@ namespace SysBot.Pokemon.Discord
                 }
 
                 Enum.TryParse(match.Ball, out Ball ball);
-                Enum.TryParse(match.Species, out Species species);
+                Enum.TryParse(string.Join("", match.Species.Split('-', ' ', '’')), out Species species);
                 if ((TCInfo.Daycare1.ID == 0 && TCInfo.Daycare2.ID == 0) || (TCInfo.Daycare1.ID == 0 && TCInfo.Daycare2.ID != int.Parse(id)))
                     TCInfo.Daycare1 = new TradeExtensions.Daycare1 { Ball = (int)ball, Form = match.Form, ID = match.ID, Shiny = match.Shiny, Species = (int)species };
                 else if (TCInfo.Daycare2.ID == 0 && TCInfo.Daycare1.ID != int.Parse(id))
@@ -1229,7 +1198,7 @@ namespace SysBot.Pokemon.Discord
             TCRng.CatchPKM.ResetPartyStats();
             TradeCordDump(TCInfo.UserID.ToString(), TCRng.CatchPKM, out int index);
             var form = nidoranGender != string.Empty ? nidoranGender : TradeExtensions.FormOutput(TCRng.CatchPKM.Species, TCRng.CatchPKM.Form, out _);
-            var pokeImg = PokeImg(TCRng.CatchPKM, TCRng.CatchPKM.CanGigantamax, TCRng.CatchPKM.Species == (int)Species.Alcremie ? TCRng.CatchPKM.Data[0xE4] : 0);
+            var pokeImg = PokeImg(TCRng.CatchPKM, TCRng.CatchPKM.CanGigantamax, (uint)(TCRng.CatchPKM.Species == (int)Species.Alcremie ? TCRng.CatchPKM.Data[0xE4] : 0));
             var ballImg = $"https://serebii.net/itemdex/sprites/pgl/" + $"{(Ball)TCRng.CatchPKM.Ball}ball".ToLower() + ".png";
             var embed = new EmbedBuilder { Color = (TCRng.CatchPKM.IsShiny && TCRng.CatchPKM.Ball == 16) || TCRng.CatchPKM.ShinyXor == 0 ? Color.Gold : TCRng.CatchPKM.ShinyXor <= 16 ? Color.LightOrange : Color.Teal, ImageUrl = pokeImg, ThumbnailUrl = ballImg };
             var catchName = $"{Context.User.Username}'s Catch [#{TCInfo.CatchCount}]" + "&^&\nResults" + $"{(EggEmbedMsg != string.Empty ? "&^&\nEggs" : "")}";

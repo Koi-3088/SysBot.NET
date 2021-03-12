@@ -447,6 +447,8 @@ namespace SysBot.Pokemon
         {
             pkm.Nickname = "KOIKOIKOIKOI";
             pkm.IsNicknamed = true;
+            if (pkm.Version != (int)GameVersion.GO)
+                pkm.MetDate = DateTime.Parse("2020/10/20");
             if (la != null)
                 pkm.SetDefaultNickname(la);
             else pkm.ClearNickname();
@@ -474,9 +476,7 @@ namespace SysBot.Pokemon
                         case CheckIdentifier.GameOrigin: pkm.Version = (int)la.EncounterMatch.Version; break;
                         case CheckIdentifier.Form: pkm.HeldItem = pkm.Species == (int)Species.Giratina && pkm.Form == 1 ? pkm.HeldItem = 112 : pkm.HeldItem; break;
                         case CheckIdentifier.Nickname: CommonEdits.SetDefaultNickname(pkm, la); break;
-                        case CheckIdentifier.Memory: pkm.SetHandlerandMemory(AutoLegalityWrapper.GetTrainerInfo(8)); pkm.SetFriendship(la.EncounterMatch); break;
                         case CheckIdentifier.Ability: pkm.AbilityNumber = pkm.AbilityNumber == 4 ? pkm.AbilityNumber = 1 : pkm.AbilityNumber; pkm.RefreshAbility(pkm.AbilityNumber); break;
-                        case CheckIdentifier.Language: pkm.Language = pkm.Language == 0 ? 2 : pkm.Language == 2 ? 1 : pkm.Language; pkm.ClearNickname(); break;
                         case CheckIdentifier.Shiny: _ = pkm.ShinyXor == 0 ? CommonEdits.SetShiny(pkm, Shiny.AlwaysStar) : pkm.ShinyXor <= 16 ? CommonEdits.SetShiny(pkm, Shiny.AlwaysSquare) : CommonEdits.SetShiny(pkm, Shiny.Never); break;
                     };
                 }
@@ -489,14 +489,17 @@ namespace SysBot.Pokemon
             return pkm;
         }
 
-        public static PK8 CherishHandler(MysteryGift mg)
+        public static PK8 CherishHandler(MysteryGift mg, ITrainerInfo info)
         {
-            var mgPkm = mg.ConvertToPKM(AutoLegalityWrapper.GetTrainerInfo(8));
+            var mgPkm = mg.ConvertToPKM(info);
             mgPkm = PKMConverter.IsConvertibleToFormat(mgPkm, 8) ? PKMConverter.ConvertToType(mgPkm, typeof(PK8), out _) : mgPkm;
             if (mgPkm != null)
             {
-                mgPkm.CurrentHandler = 1;
-                return (PK8)mgPkm;
+                mgPkm.SetHandlerandMemory(info);
+                var la = new LegalityAnalysis(mgPkm);
+                if (!la.Valid)
+                    return new();
+                else return (PK8)mgPkm;
             }
             else return new();
         }
@@ -571,9 +574,9 @@ namespace SysBot.Pokemon
 
         public static void TradeStatusUpdate(string id, bool cancelled = false)
         {
-            if (!cancelled)
+            var origPath = TradeCordPath.FirstOrDefault(x => x.Contains(id));
+            if (!cancelled && origPath != default)
             {
-                var origPath = TradeCordPath.FirstOrDefault(x => x.Contains(id));
                 var tradedPath = Path.Combine($"TradeCord\\Backup\\{id}", origPath.Split('\\')[2]);
                 try
                 {
@@ -585,9 +588,12 @@ namespace SysBot.Pokemon
                 }
             }
 
-            var entries = TradeCordPath.FindAll(x => x.Contains(id));
-            for (int i = 0; i < entries.Count; i++)
-                TradeCordPath.Remove(entries[i]);
+            if (TradeCordPath.FirstOrDefault(x => x.Contains(id)) != default)
+            {
+                var entries = TradeCordPath.FindAll(x => x.Contains(id));
+                for (int i = 0; i < entries.Count; i++)
+                    TradeCordPath.Remove(entries[i]);
+            }
         }
     }
 }
