@@ -447,7 +447,7 @@ namespace SysBot.Pokemon
         {
             pkm.Nickname = "KOIKOIKOIKOI";
             pkm.IsNicknamed = true;
-            if (pkm.Version != (int)GameVersion.GO)
+            if (pkm.Version != (int)GameVersion.GO && !pkm.FatefulEncounter)
                 pkm.MetDate = DateTime.Parse("2020/10/20");
             if (la != null)
                 pkm.SetDefaultNickname(la);
