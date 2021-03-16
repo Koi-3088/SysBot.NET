@@ -494,14 +494,16 @@ namespace SysBot.Pokemon
             var mgPkm = mg.ConvertToPKM(info);
             mgPkm = PKMConverter.IsConvertibleToFormat(mgPkm, 8) ? PKMConverter.ConvertToType(mgPkm, typeof(PK8), out _) : mgPkm;
             if (mgPkm != null)
-            {
                 mgPkm.SetHandlerandMemory(info);
-                var la = new LegalityAnalysis(mgPkm);
-                if (!la.Valid)
-                    return new();
-                else return (PK8)mgPkm;
-            }
             else return new();
+
+            var la = new LegalityAnalysis(mgPkm);
+            if (!la.Valid)
+            {
+                mgPkm.SetRandomIVs(6);
+                return (PK8)AutoLegalityWrapper.GetLegal(info, new ShowdownSet(ShowdownParsing.GetShowdownText(mgPkm)), out _);
+            }
+            else return (PK8)mgPkm;
         }
 
         private static void AddNewUser(TCUserInfoRoot root, ulong id, string file)
