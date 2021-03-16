@@ -180,17 +180,12 @@ namespace SysBot.Pokemon.Discord
                     Enum.TryParse(TCInfo.Language, out LanguageID language);
                     var info = !trainerInfo.Contains("") ? new SimpleTrainerInfo { Gender = (int)gender, Language = (int)language, OT = TCInfo.OTName, TID = TCInfo.TID, SID = TCInfo.SID } : AutoLegalityWrapper.GetTrainerInfo(8);
                     TCRng.CatchPKM = TradeExtensions.CherishHandler(mgRng, info);
-                    TradeExtensions.LegalityAttempt(TCRng.CatchPKM);
-                }
-                else
-                {
-                    var set = SetHandler(speciesName, trainerInfo);
-                    var template = AutoLegalityWrapper.GetTemplate(set);
-                    var sav = AutoLegalityWrapper.GetTrainerInfo(8);
-                    TCRng.CatchPKM = (PK8)sav.GetLegal(template, out _);  
-                    TradeExtensions.RngRoutine(TCRng.CatchPKM);
                 }
 
+                if (TCRng.CatchPKM.Species == 0)
+                    SetHandler(speciesName, trainerInfo);
+
+                TradeExtensions.LegalityAttempt(TCRng.CatchPKM);
                 if (!await CatchHandler(speciesName).ConfigureAwait(false))
                     return;
             }
@@ -1042,7 +1037,7 @@ namespace SysBot.Pokemon.Discord
             await Context.Message.Channel.SendMessageAsync(embed: embed.Build()).ConfigureAwait(false);
         }
 
-        private ShowdownSet SetHandler(string speciesName, List<string> trainerInfo)
+        private void SetHandler(string speciesName, List<string> trainerInfo)
         {
             string formHack = string.Empty;
             var formEdgeCaseRng = TradeExtensions.Random.Next(2);
@@ -1084,7 +1079,10 @@ namespace SysBot.Pokemon.Discord
             if (set.CanToggleGigantamax(set.Species, set.Form) && TCRng.GmaxRNG >= 100 - Info.Hub.Config.TradeCord.GmaxRate)
                 set.CanGigantamax = true;
 
-            return set;
+            var template = AutoLegalityWrapper.GetTemplate(set);
+            var sav = AutoLegalityWrapper.GetTrainerInfo(8);
+            TCRng.CatchPKM = (PK8)sav.GetLegal(template, out _);
+            TradeExtensions.RngRoutine(TCRng.CatchPKM);
         }
 
         private async Task<bool> EggHandler(string trainerInfo, int evo1, int evo2)
