@@ -514,7 +514,7 @@ namespace SysBot.Pokemon.Discord
                 }
 
                 Enum.TryParse(match.Ball, out Ball ball);
-                Enum.TryParse(string.Join("", match.Species.Split('-', ' ', '’')), out Species species);
+                Enum.TryParse(string.Join("", match.Species.Split('-', ' ', '’', '.')), out Species species);
                 if ((TCInfo.Daycare1.ID == 0 && TCInfo.Daycare2.ID == 0) || (TCInfo.Daycare1.ID == 0 && TCInfo.Daycare2.ID != int.Parse(id)))
                     TCInfo.Daycare1 = new TradeExtensions.Daycare1 { Ball = (int)ball, Form = match.Form, ID = match.ID, Shiny = match.Shiny, Species = (int)species };
                 else if (TCInfo.Daycare2.ID == 0 && TCInfo.Daycare1.ID != int.Parse(id))
