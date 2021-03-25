@@ -44,7 +44,7 @@ namespace SysBot.Pokemon.Discord
             OnFinish?.Invoke(routine);
             Trader.SendMessageAsync($"Trade canceled: {msg}").ConfigureAwait(false);
             if (info.Type == PokeTradeType.TradeCord)
-                TradeExtensions.TradeStatusUpdate(Trader.Id.ToString());
+                TradeExtensions.TradeStatusUpdate(Trader.Id.ToString(), true);
         }
 
         public void TradeFinished(PokeRoutineExecutor routine, PokeTradeDetail<T> info, T result)

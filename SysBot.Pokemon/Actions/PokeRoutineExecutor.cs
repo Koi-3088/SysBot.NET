@@ -45,8 +45,7 @@ namespace SysBot.Pokemon
         {
             if (ball >= Ball.Fast && ball <= Ball.Beast)
             {
-                new EncounterCount().BallIndex(ball, out int result);
-                var apriData = BitConverter.GetBytes(result);
+                var apriData = BitConverter.GetBytes(EncounterCount.BallIndex((int)ball));
                 await Connection.WriteBytesAsync(apriData, LastUsedBallOffset, token).ConfigureAwait(false);
                 return;
             }

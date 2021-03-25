@@ -2,7 +2,7 @@
   "Entries": [
     {
       "EntryIndex": 1,
-      "Species": 67,
+      "Species": 856,
       "AltForm": 0,
       "Level": 17,
       "DynamaxLevel": 1,
@@ -24,7 +24,7 @@
     },
     {
       "EntryIndex": 2,
-      "Species": 447,
+      "Species": 280,
       "AltForm": 0,
       "Level": 17,
       "DynamaxLevel": 1,
@@ -46,7 +46,7 @@
     },
     {
       "EntryIndex": 3,
-      "Species": 870,
+      "Species": 109,
       "AltForm": 0,
       "Level": 17,
       "DynamaxLevel": 1,
@@ -68,7 +68,7 @@
     },
     {
       "EntryIndex": 4,
-      "Species": 825,
+      "Species": 821,
       "AltForm": 0,
       "Level": 17,
       "DynamaxLevel": 1,
@@ -90,7 +90,7 @@
     },
     {
       "EntryIndex": 5,
-      "Species": 577,
+      "Species": 627,
       "AltForm": 0,
       "Level": 17,
       "DynamaxLevel": 1,
@@ -112,7 +112,7 @@
     },
     {
       "EntryIndex": 6,
-      "Species": 574,
+      "Species": 845,
       "AltForm": 0,
       "Level": 17,
       "DynamaxLevel": 1,
@@ -134,12 +134,12 @@
     },
     {
       "EntryIndex": 7,
-      "Species": 68,
+      "Species": 856,
       "AltForm": 0,
       "Level": 30,
       "DynamaxLevel": 3,
       "Ability": 4,
-      "IsGigantamax": true,
+      "IsGigantamax": false,
       "Probabilities": [
         0,
         20,
@@ -156,7 +156,7 @@
     },
     {
       "EntryIndex": 8,
-      "Species": 447,
+      "Species": 281,
       "AltForm": 0,
       "Level": 30,
       "DynamaxLevel": 3,
@@ -178,7 +178,7 @@
     },
     {
       "EntryIndex": 9,
-      "Species": 870,
+      "Species": 109,
       "AltForm": 0,
       "Level": 30,
       "DynamaxLevel": 3,
@@ -200,12 +200,12 @@
     },
     {
       "EntryIndex": 10,
-      "Species": 826,
+      "Species": 822,
       "AltForm": 0,
       "Level": 30,
       "DynamaxLevel": 3,
       "Ability": 4,
-      "IsGigantamax": true,
+      "IsGigantamax": false,
       "Probabilities": [
         0,
         20,
@@ -222,7 +222,7 @@
     },
     {
       "EntryIndex": 11,
-      "Species": 577,
+      "Species": 627,
       "AltForm": 0,
       "Level": 30,
       "DynamaxLevel": 3,
@@ -244,7 +244,7 @@
     },
     {
       "EntryIndex": 12,
-      "Species": 574,
+      "Species": 845,
       "AltForm": 0,
       "Level": 30,
       "DynamaxLevel": 3,
@@ -266,7 +266,7 @@
     },
     {
       "EntryIndex": 13,
-      "Species": 68,
+      "Species": 857,
       "AltForm": 0,
       "Level": 40,
       "DynamaxLevel": 5,
@@ -288,7 +288,7 @@
     },
     {
       "EntryIndex": 14,
-      "Species": 448,
+      "Species": 282,
       "AltForm": 0,
       "Level": 40,
       "DynamaxLevel": 5,
@@ -310,8 +310,8 @@
     },
     {
       "EntryIndex": 15,
-      "Species": 870,
-      "AltForm": 0,
+      "Species": 110,
+      "AltForm": 1,
       "Level": 40,
       "DynamaxLevel": 5,
       "Ability": 4,
@@ -332,7 +332,7 @@
     },
     {
       "EntryIndex": 16,
-      "Species": 826,
+      "Species": 823,
       "AltForm": 0,
       "Level": 40,
       "DynamaxLevel": 5,
@@ -354,7 +354,7 @@
     },
     {
       "EntryIndex": 17,
-      "Species": 578,
+      "Species": 628,
       "AltForm": 0,
       "Level": 40,
       "DynamaxLevel": 5,
@@ -376,7 +376,7 @@
     },
     {
       "EntryIndex": 18,
-      "Species": 575,
+      "Species": 845,
       "AltForm": 0,
       "Level": 40,
       "DynamaxLevel": 5,
@@ -398,7 +398,7 @@
     },
     {
       "EntryIndex": 19,
-      "Species": 68,
+      "Species": 858,
       "AltForm": 0,
       "Level": 50,
       "DynamaxLevel": 8,
@@ -420,7 +420,7 @@
     },
     {
       "EntryIndex": 20,
-      "Species": 448,
+      "Species": 282,
       "AltForm": 0,
       "Level": 50,
       "DynamaxLevel": 8,
@@ -442,8 +442,8 @@
     },
     {
       "EntryIndex": 21,
-      "Species": 870,
-      "AltForm": 0,
+      "Species": 110,
+      "AltForm": 1,
       "Level": 50,
       "DynamaxLevel": 8,
       "Ability": 4,
@@ -464,7 +464,7 @@
     },
     {
       "EntryIndex": 22,
-      "Species": 826,
+      "Species": 823,
       "AltForm": 0,
       "Level": 50,
       "DynamaxLevel": 8,
@@ -486,7 +486,7 @@
     },
     {
       "EntryIndex": 23,
-      "Species": 579,
+      "Species": 628,
       "AltForm": 0,
       "Level": 50,
       "DynamaxLevel": 8,
@@ -508,7 +508,7 @@
     },
     {
       "EntryIndex": 24,
-      "Species": 576,
+      "Species": 845,
       "AltForm": 0,
       "Level": 50,
       "DynamaxLevel": 8,
@@ -530,7 +530,7 @@
     },
     {
       "EntryIndex": 25,
-      "Species": 68,
+      "Species": 858,
       "AltForm": 0,
       "Level": 60,
       "DynamaxLevel": 10,
@@ -552,7 +552,7 @@
     },
     {
       "EntryIndex": 26,
-      "Species": 448,
+      "Species": 282,
       "AltForm": 0,
       "Level": 60,
       "DynamaxLevel": 10,
@@ -574,8 +574,8 @@
     },
     {
       "EntryIndex": 27,
-      "Species": 870,
-      "AltForm": 0,
+      "Species": 110,
+      "AltForm": 1,
       "Level": 60,
       "DynamaxLevel": 10,
       "Ability": 4,
@@ -596,7 +596,7 @@
     },
     {
       "EntryIndex": 28,
-      "Species": 826,
+      "Species": 823,
       "AltForm": 0,
       "Level": 60,
       "DynamaxLevel": 10,
@@ -618,7 +618,7 @@
     },
     {
       "EntryIndex": 29,
-      "Species": 579,
+      "Species": 628,
       "AltForm": 0,
       "Level": 60,
       "DynamaxLevel": 10,
@@ -640,7 +640,7 @@
     },
     {
       "EntryIndex": 30,
-      "Species": 576,
+      "Species": 845,
       "AltForm": 0,
       "Level": 60,
       "DynamaxLevel": 10,
