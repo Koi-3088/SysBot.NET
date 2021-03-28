@@ -82,22 +82,6 @@ namespace SysBot.Pokemon
             };
         }
 
-        public int BallIndex(Ball ball, out int result)
-        {
-            result = (int)ball;
-            return ball switch
-            {
-                Ball.Fast => result = 492,
-                Ball.Level => result = 493,
-                Ball.Lure => result = 494,
-                Ball.Heavy => result = 495,
-                Ball.Love => result = 496,
-                Ball.Friend => result = 497,
-                Ball.Moon => result = 498,
-                Ball.Dream => result = 576,
-                Ball.Beast => result = 851,
-                _ => throw new NotImplementedException(),
-            };
-        }
+        public static int BallIndex(int ball) => Pouch_Ball_SWSH[ball == 25 || ball == 26 ? ball : ball - 1];
     }
 }
