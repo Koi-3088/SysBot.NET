@@ -19,7 +19,6 @@ namespace SysBot.Pokemon.Discord
 
         public readonly SensitiveSet<string> RolesClone = new();
         public readonly SensitiveSet<string> RolesFixOT = new();
-        public readonly SensitiveSet<string> RolesSpecialRequest = new();
         public readonly SensitiveSet<string> RolesTradeCord = new();
         public readonly SensitiveSet<string> RolesGiveaway = new();
         public readonly SensitiveSet<string> RolesTrade = new();
