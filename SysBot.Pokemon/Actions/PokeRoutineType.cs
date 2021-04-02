@@ -11,6 +11,8 @@
         SeedCheck,
         Clone,
         Dump,
+        FixOT,
+        TradeCord,
 
         EggFetch,
         FossilBot,

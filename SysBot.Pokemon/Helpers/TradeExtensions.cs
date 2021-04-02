@@ -367,7 +367,7 @@ namespace SysBot.Pokemon
             pkm.Move1_PPUps = pkm.Move2_PPUps = pkm.Move3_PPUps = pkm.Move4_PPUps = 0;
             pkm.SetMaximumPPCurrent(pkm.Moves);
             pkm.SetSuggestedHyperTrainingData();
-            pkm.SetSuggestedRibbons();
+            pkm.SetSuggestedRibbons(la.EncounterMatch);
         }
 
         public static List<string> SpliceAtWord(string entry, int start, int length)
