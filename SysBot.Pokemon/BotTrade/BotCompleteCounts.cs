@@ -22,6 +22,7 @@ namespace SysBot.Pokemon
         private int CompletedTradeCords;
         private int CompletedDumps;
         private int CompletedRaids;
+        private int CompletedAdventures;
 
         public BotCompleteCounts(CountSettings config)
         {
@@ -45,6 +46,7 @@ namespace SysBot.Pokemon
             CompletedTradeCords = Config.CompletedTradeCords;
             CompletedDumps = Config.CompletedDumps;
             CompletedRaids = Config.CompletedRaids;
+            CompletedAdventures = Config.CompletedAdventures;
         }
 
         public void AddCompletedTrade()
@@ -123,6 +125,11 @@ namespace SysBot.Pokemon
             Interlocked.Increment(ref CompletedRaids);
             Config.CompletedRaids = CompletedRaids;
         }
+        public void AddCompletedAdventures()
+        {
+            Interlocked.Increment(ref CompletedAdventures);
+            Config.CompletedAdventures = CompletedAdventures;
+        }
 
         public void AddCompletedDumps()
         {
@@ -154,6 +161,8 @@ namespace SysBot.Pokemon
                 yield return $"Eggs Received: {CompletedEggs}";
             if (CompletedRaids != 0)
                 yield return $"Completed Raids: {CompletedRaids}";
+            if (CompletedAdventures != 0)
+                yield return $"Completed Adventures: {CompletedAdventures}";
             if (CompletedFossils != 0)
                 yield return $"Completed Fossils: {CompletedFossils}";
             if (CompletedEncounters != 0)
