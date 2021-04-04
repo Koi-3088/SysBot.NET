@@ -310,9 +310,10 @@ namespace SysBot.Pokemon
                     if (clone.FatefulEncounter)
                     {
                         clone.SetDefaultNickname(laInit);
+                        var info = new SimpleTrainerInfo { Gender = clone.OT_Gender, Language = clone.Language, OT = TrainerName, TID = clone.TID, SID = clone.SID };
                         var mg = EncounterEvent.GetAllEvents().Where(x => x.Species == clone.Species && x.Form == clone.Form && x.IsShiny == clone.IsShiny && x.OT_Name == clone.OT_Name).ToList();
                         if (mg.Count > 0)
-                            clone = TradeExtensions.CherishHandler(mg.First());
+                            clone = TradeExtensions.CherishHandler(mg.First(), info);
                         else clone = (PK8)AutoLegalityWrapper.GetTrainerInfo(8).GetLegal(AutoLegalityWrapper.GetTemplate(new ShowdownSet(ShowdownParsing.GetShowdownText(clone) + extraInfo)), out _);
                     }
                     else clone = (PK8)AutoLegalityWrapper.GetTrainerInfo(8).GetLegal(AutoLegalityWrapper.GetTemplate(new ShowdownSet(ShowdownParsing.GetShowdownText(clone) + extraInfo)), out _);

@@ -37,8 +37,6 @@ namespace SysBot.Pokemon
                 PokeRoutineType.FixOT => FixOT,
                 PokeRoutineType.TradeCord => TradeCord,
                 PokeRoutineType.Dump => Dump,
-                PokeRoutineType.FixOT => FixOT,
-                PokeRoutineType.TradeCord => TradeCord,
                 _ => Trade,
             };
         }
