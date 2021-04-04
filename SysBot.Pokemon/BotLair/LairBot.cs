@@ -363,7 +363,7 @@ namespace SysBot.Pokemon
             }
 
             await SwitchConnection.WriteBytesAbsoluteAsync(BitConverter.GetBytes(0x7900E808), MainNsoBase + DamageOutputOffset, token).ConfigureAwait(false);
-            if ((Settings.LairBall != Ball.None && Settings.CatchLairPokémon && catchCount < 5) || (catchCount <= 1 && catchCount != -1))
+            if (Settings.LairBall != Ball.None && catchCount < 5 && catchCount != -1)
             {
                 Log("Restoring original ball pouch...");
                 await Connection.WriteBytesAsync(BallPouch, PokeBallOffset, token).ConfigureAwait(false);
