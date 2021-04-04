@@ -9,8 +9,8 @@
         FlexTrade,
         LinkTrade,
         SeedCheck,
-        Dump,
         Clone,
+        Dump,
         FixOT,
         TradeCord,
 
