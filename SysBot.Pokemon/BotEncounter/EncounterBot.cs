@@ -378,6 +378,6 @@ namespace SysBot.Pokemon
                 while (!await IsOnOverworld(Hub.Config, token).ConfigureAwait(false))
                     await Task.Delay(2_000).ConfigureAwait(false);
             }
-        }        
+        }
     }
 }
