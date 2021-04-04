@@ -5,7 +5,7 @@ namespace SysBot.Pokemon
 {
     class EncounterCount
     {
-        private int Master, Poke, Beast, Dive, Dream, Dusk, Fast, Friend, Great, Heal, Heavy, Level, Love, Lure, Luxury, Moon, Nest, Net, Premier, Quick, Repeat, Timer, Ultra;
+        private int Master, Poke, Beast, Dive, Dream, Dusk, Fast, Friend, Great, Heal, Heavy, Level, Love, Lure, Luxury, Moon, Nest, Net, Premier, Quick, Repeat, Timer, Ultra, Sport, Safari;
 
         internal static readonly ushort[] Pouch_Ball_SWSH =
         {
@@ -44,6 +44,7 @@ namespace SysBot.Pokemon
                 case 2: Ultra = count; break;
                 case 3: Great = count; break;
                 case 4: Poke = count; break;
+                case 5: Safari = count; break;
                 case 6: Net = count; break;
                 case 7: Dive = count; break;
                 case 8: Nest = count; break;
@@ -61,6 +62,7 @@ namespace SysBot.Pokemon
                 case 496: Love = count; break;
                 case 497: Friend = count; break;
                 case 498: Moon = count; break;
+                case 499: Sport = count; break;
                 case 576: Dream = count; break;
                 case 851: Beast = count; break;
             };
@@ -70,14 +72,31 @@ namespace SysBot.Pokemon
         {
             return ball switch
             {
-                Ball.Master => Master, Ball.Poke => Poke, Ball.Beast => Beast,
-                Ball.Dive => Dive, Ball.Dream => Dream, Ball.Dusk => Dusk,
-                Ball.Fast => Fast, Ball.Friend => Friend, Ball.Great => Great,
-                Ball.Heal => Heal, Ball.Heavy => Heavy, Ball.Level => Level,
-                Ball.Love => Love, Ball.Lure => Lure, Ball.Luxury => Luxury,
-                Ball.Moon => Moon, Ball.Nest => Nest, Ball.Net => Net,
-                Ball.Premier => Premier, Ball.Quick => Quick, Ball.Repeat => Repeat, 
-                Ball.Timer => Timer, Ball.Ultra => Ultra,
+                Ball.Master => Master,
+                Ball.Poke => Poke,
+                Ball.Beast => Beast,
+                Ball.Dive => Dive,
+                Ball.Dream => Dream,
+                Ball.Dusk => Dusk,
+                Ball.Fast => Fast,
+                Ball.Friend => Friend,
+                Ball.Great => Great,
+                Ball.Heal => Heal,
+                Ball.Heavy => Heavy,
+                Ball.Level => Level,
+                Ball.Love => Love,
+                Ball.Lure => Lure,
+                Ball.Luxury => Luxury,
+                Ball.Moon => Moon,
+                Ball.Nest => Nest,
+                Ball.Net => Net,
+                Ball.Premier => Premier,
+                Ball.Quick => Quick,
+                Ball.Repeat => Repeat,
+                Ball.Timer => Timer,
+                Ball.Ultra => Ultra,
+                Ball.Safari => Safari,
+                Ball.Sport => Sport,
                 _ => throw new ArgumentOutOfRangeException(nameof(Ball))
             };
         }
