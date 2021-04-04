@@ -15,6 +15,7 @@ namespace SysBot.Pokemon.Discord
     public class TradeAdditionsModule : ModuleBase<SocketCommandContext>
     {
         private static TradeQueueInfo<PK8> Info => SysCordInstance.Self.Hub.Queues.Info;
+        public PokeTradeHub<PK8> Hub = SysCordInstance.Self.Hub;
         private readonly TradeExtensions.TCRng TCRng = new();
         private TradeExtensions.TCUserInfo TCInfo = new();
         private readonly string InfoPath = "TradeCord\\UserInfo.json";
@@ -889,6 +890,9 @@ namespace SysBot.Pokemon.Discord
 
         private bool SettingsCheck()
         {
+            if (!Hub.Config.Legality.AllowBatchCommands)
+                Hub.Config.Legality.AllowBatchCommands = true;
+
             List<int> rateCheck = new();
             IEnumerable<int> p = new[] { Info.Hub.Config.TradeCord.CatchRate, Info.Hub.Config.TradeCord.CherishRate, Info.Hub.Config.TradeCord.EggRate, Info.Hub.Config.TradeCord.GmaxRate, Info.Hub.Config.TradeCord.SquareShinyRate, Info.Hub.Config.TradeCord.StarShinyRate };
             rateCheck.AddRange(p);
@@ -1108,7 +1112,7 @@ namespace SysBot.Pokemon.Discord
             if (shinyType != "" && TCRng.SpeciesRNG == (int)Species.Mew)
                 trainerInfo.RemoveAll(x => x.Contains("Language"));
 
-            var set = new ShowdownSet($"{speciesName}{(formHack != "" ? $"-{formHack}" : "")}{ballRng}{shinyType}\n{string.Join("\n", trainerInfo)}");
+            var set = new ShowdownSet($"{speciesName}{(formHack != "" ? $"-{formHack}" : "")}{ballRng}{shinyType}\n{string.Join("\n", trainerInfo)}{(TCRng.SpeciesRNG == 151 && shinyType != "" ? ".Version=3" : "")}");
             if (set.CanToggleGigantamax(set.Species, set.Form) && TCRng.GmaxRNG >= 100 - Info.Hub.Config.TradeCord.GmaxRate)
                 set.CanGigantamax = true;
 
