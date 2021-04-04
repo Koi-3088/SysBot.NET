@@ -13,6 +13,8 @@
         FixOT,
         TradeCord,
         Dump,
+        FixOT,
+        TradeCord,
 
         EggFetch,
         FossilBot,
