@@ -319,7 +319,7 @@ namespace SysBot.Pokemon
             Log("Closed out of the game!");
         }
 
-        public async Task StartGame(PokeTradeHubConfig config, CancellationToken token, bool softReset = false)
+        public async Task StartGame(PokeTradeHubConfig config, CancellationToken token, bool softReset = false, bool lairReset = false)
         {
             // Open game.
             await Click(A, 1_000 + config.Timings.ExtraTimeLoadProfile, token).ConfigureAwait(false);
@@ -346,8 +346,14 @@ namespace SysBot.Pokemon
             for (int i = 0; i < 5; i++)
                 await Click(A, 1_000, token).ConfigureAwait(false);
 
-            while (!await IsOnOverworld(config, token).ConfigureAwait(false) && !softReset)
+            while (!await IsOnOverworld(config, token).ConfigureAwait(false) && !softReset && !lairReset)
                 await Task.Delay(2_000, token).ConfigureAwait(false);
+
+            if (lairReset)
+            {
+                while (!await IsOnOverworld(config, token).ConfigureAwait(false))
+                    await Click(B, 0_500, token).ConfigureAwait(false);
+            }
 
             if (!softReset)
                 Log("Back in the overworld!");
@@ -550,6 +556,52 @@ namespace SysBot.Pokemon
             while (!await IsOnOverworld(config, token).ConfigureAwait(false))
                 await Click(A, 0_500, token).ConfigureAwait(false);
             Log("Game saved!");
+        }
+
+        public async Task<bool> LairStatusCheck(uint val, uint ofs, CancellationToken token) => BitConverter.GetBytes(val).SequenceEqual(await Connection.ReadBytesAsync(ofs, 4, token).ConfigureAwait(false));
+
+        public async Task<ulong> ParsePointer(string pointer, CancellationToken token) //Code from LiveHex
+        {
+            var ptr = pointer;
+            uint finadd = 0;
+            if (!ptr.EndsWith("]"))
+                finadd = Util.GetHexValue(ptr.Split('+').Last());
+            var jumps = ptr.Replace("main", "").Replace("[", "").Replace("]", "").Split(new[] { "+" }, StringSplitOptions.RemoveEmptyEntries);
+            if (jumps.Length == 0)
+            {
+                Log("Invalid Pointer");
+                return 0;
+            }
+
+            var initaddress = Util.GetHexValue(jumps[0].Trim());
+            ulong address = BitConverter.ToUInt64(await SwitchConnection.ReadBytesMainAsync(initaddress, 0x8, token).ConfigureAwait(false), 0);
+            foreach (var j in jumps)
+            {
+                var val = Util.GetHexValue(j.Trim());
+                if (val == initaddress)
+                    continue;
+                if (val == finadd)
+                {
+                    address += val;
+                    break;
+                }
+                address = BitConverter.ToUInt64(await SwitchConnection.ReadBytesAbsoluteAsync(address + val, 0x8, token).ConfigureAwait(false), 0);
+            }
+            return address;
+        }
+
+        public async Task<PK8?> ReadUntilPresentAbsolute(ulong offset, int waitms, int waitInterval, CancellationToken token, int size = BoxFormatSlotSize) // Need to eliminate duplicate code, currently a hack
+        {
+            int msWaited = 0;
+            while (msWaited < waitms)
+            {
+                var pk = new PK8(await SwitchConnection.ReadBytesAbsoluteAsync(offset, size, token).ConfigureAwait(false));
+                if (pk.Species != 0 && pk.ChecksumValid)
+                    return pk;
+                await Task.Delay(waitInterval, token).ConfigureAwait(false);
+                msWaited += waitInterval;
+            }
+            return null;
         }
     }
 }
