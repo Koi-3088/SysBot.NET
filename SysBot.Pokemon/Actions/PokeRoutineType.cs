@@ -9,10 +9,10 @@
         FlexTrade,
         LinkTrade,
         SeedCheck,
+        Dump,
         Clone,
         FixOT,
         TradeCord,
-        Dump,
 
         EggFetch,
         FossilBot,
