@@ -584,5 +584,27 @@ namespace SysBot.Pokemon
                     TradeCordPath.Remove(entries[i]);
             }
         }
+
+        public static string PokeImg(PKM pkm, bool canGmax)
+        {
+            var alcremieDeco = (uint)(pkm.Species == (int)Species.Alcremie ? pkm.Data[0xE4] : 0);
+            bool md = false;
+            bool fd = false;
+            var baseLink = "https://projectpokemon.org/images/sprites-models/homeimg/poke_capture_0001_000_mf_n_00000000_f_n.png".Split('_');
+            if (GenderDependent.Contains(pkm.Species) && !canGmax && pkm.Form == 0)
+            {
+                if (pkm.Gender == 0)
+                    md = true;
+                else fd = true;
+            }
+
+            baseLink[2] = pkm.Species < 10 ? $"000{pkm.Species}" : pkm.Species < 100 && pkm.Species > 9 ? $"00{pkm.Species}" : $"0{pkm.Species}";
+            baseLink[3] = pkm.Form < 10 ? $"00{pkm.Form}" : $"0{pkm.Form}";
+            baseLink[4] = pkm.PersonalInfo.OnlyFemale ? "fo" : pkm.PersonalInfo.OnlyMale ? "mo" : pkm.PersonalInfo.Genderless ? "uk" : fd ? "fd" : md ? "md" : "mf";
+            baseLink[5] = canGmax ? "g" : "n";
+            baseLink[6] = "0000000" + (pkm.Species == (int)Species.Alcremie ? alcremieDeco : 0);
+            baseLink[8] = pkm.IsShiny ? "r.png" : "n.png";
+            return string.Join("_", baseLink);
+        }
     }
 }
