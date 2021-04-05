@@ -221,13 +221,14 @@ namespace SysBot.Pokemon
             pkm.Move1_PPUps = pkm.Move2_PPUps = pkm.Move3_PPUps = pkm.Move4_PPUps = 0;
             pkm.SetMaximumPPCurrent(pkm.Moves);
             pkm.FixMoves();
-            if (!GalarFossils.Contains(pkm.Species) && !pkm.FatefulEncounter)
-                pkm.SetAbilityIndex(Legends.Contains(pkm.Species) ? 0 : pkm.Met_Location == 244 || pkm.Met_Location == 30001 ? 2 : Random.Next(3));
-
             pkm.ClearHyperTraining();
+
             var la = new LegalityAnalysis(pkm);
             var enc = la.Info.EncounterMatch;
-            pkm.IVs = enc is EncounterStatic8N ? pkm.SetRandomIVs(5) : pkm.FatefulEncounter ? pkm.IVs : enc is EncounterSlot8 || enc is EncounterStatic8U ? pkm.SetRandomIVs(4) : pkm.SetRandomIVs(3);
+            if (!GalarFossils.Contains(pkm.Species) && !pkm.FatefulEncounter)
+                pkm.SetAbilityIndex(Legends.Contains(pkm.Species) ? 0 : pkm.Met_Location == 244 || pkm.Met_Location == 30001 ? 2 : enc.Version < GameVersion.US ? 2 : Random.Next(3));
+
+            pkm.IVs = enc is EncounterStatic8N ? pkm.SetRandomIVs(5) : pkm.FatefulEncounter ? pkm.IVs : enc is EncounterSlot8 || enc is EncounterStatic8U ? pkm.SetRandomIVs(4) : enc is EncounterSlot8GO || enc is EncounterSlot7GO ? pkm.SetRandomIVsGO() : pkm.SetRandomIVs(3);
             if (enc is EncounterStatic8)
             {
                 while (!new LegalityAnalysis(pkm).Valid)
