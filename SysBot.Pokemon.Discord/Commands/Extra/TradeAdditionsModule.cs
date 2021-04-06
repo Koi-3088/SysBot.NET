@@ -157,6 +157,86 @@ namespace SysBot.Pokemon.Discord
             await ReplyAsync("These are the users who are currently waiting:", embed: embed.Build()).ConfigureAwait(false);
         }
 
+        [Command("itemTrade")]
+        [Alias("it", "item")]
+        [Summary("Makes the bot trade you a Pokémon holding the requested item, or Ditto if stat spread keyword is provided.")]
+        [RequireQueueRole(nameof(DiscordManager.RolesSupportTrade))]
+        public async Task ItemTrade([Remainder] string item)
+        {
+            var code = Info.GetRandomTradeCode();
+            await ItemTrade(code, item).ConfigureAwait(false);
+        }
+
+        [Command("itemTrade")]
+        [Alias("it", "item")]
+        [Summary("Makes the bot trade you a Pokémon holding the requested item.")]
+        [RequireQueueRole(nameof(DiscordManager.RolesSupportTrade))]
+        public async Task ItemTrade([Summary("Trade Code")] int code, [Remainder] string item)
+        {
+            Species species = Info.Hub.Config.Trade.ItemTradeSpecies == Species.None ? Species.Delibird : Info.Hub.Config.Trade.ItemTradeSpecies;
+            var set = new ShowdownSet($"{SpeciesName.GetSpeciesNameGeneration((int)species, 2, 8)} @ {item.Trim()}");
+            var template = AutoLegalityWrapper.GetTemplate(set);
+            var sav = AutoLegalityWrapper.GetTrainerInfo(8);
+            var pkm = sav.GetLegal(template, out var result);
+            pkm = PKMConverter.ConvertToType(pkm, typeof(PK8), out _) ?? pkm;
+
+            var la = new LegalityAnalysis(pkm);
+            if (Info.Hub.Config.Trade.Memes && await TrollAsync(Context, pkm is not PK8 || !la.Valid, template).ConfigureAwait(false))
+                return;
+            else if (pkm is not PK8 || !la.Valid)
+            {
+                var reason = result == "Timeout" ? "That set took too long to generate." : "I wasn't able to create something from that.";
+                var imsg = $"Oops! {reason} Here's my best attempt for that {species}!";
+                await Context.Channel.SendPKMAsync(pkm, imsg).ConfigureAwait(false);
+                return;
+            }
+
+            pkm.ResetPartyStats();
+            var sig = Context.User.GetFavor();
+            await Context.AddToQueueAsync(code, Context.User.Username, sig, (PK8)pkm, PokeRoutineType.LinkTrade, PokeTradeType.SupportTrade).ConfigureAwait(false);
+        }
+
+        [Command("dittoTrade")]
+        [Alias("dt", "ditto")]
+        [Summary("Makes the bot trade you a Ditto with a requested stat spread and language.")]
+        [RequireQueueRole(nameof(DiscordManager.RolesSupportTrade))]
+        public async Task DittoTrade([Summary("A combination of \"ATK/SPA/SPE\" or \"6IV\"")] string keyword, [Summary("Language")] string language, [Summary("Nature")] string nature)
+        {
+            var code = Info.GetRandomTradeCode();
+            await DittoTrade(code, keyword, language, nature).ConfigureAwait(false);
+        }
+
+        [Command("dittoTrade")]
+        [Alias("dt", "ditto")]
+        [Summary("Makes the bot trade you a Ditto with a requested stat spread and language.")]
+        [RequireQueueRole(nameof(DiscordManager.RolesSupportTrade))]
+        public async Task DittoTrade([Summary("Trade Code")] int code, [Summary("A combination of \"ATK/SPA/SPE\" or \"6IV\"")] string keyword, [Summary("Language")] string language, [Summary("Nature")] string nature)
+        {
+            keyword = keyword.ToLower().Trim();
+            language = language.Trim().Substring(0, 1).ToUpper() + language.Trim().Substring(1).ToLower();
+            var set = new ShowdownSet($"{keyword}(Ditto)\nLanguage: {language}\nNature: {nature.Trim()}");
+            var template = AutoLegalityWrapper.GetTemplate(set);
+            var sav = AutoLegalityWrapper.GetTrainerInfo(8);
+            var pkm = sav.GetLegal(template, out var result);
+            pkm = PKMConverter.ConvertToType(pkm, typeof(PK8), out _) ?? pkm;
+            TradeExtensions.DittoTrade(pkm);
+
+            var la = new LegalityAnalysis(pkm);
+            if (Info.Hub.Config.Trade.Memes && await TrollAsync(Context, pkm is not PK8 || !la.Valid, template).ConfigureAwait(false))
+                return;
+            else if (pkm is not PK8 || !la.Valid)
+            {
+                var reason = result == "Timeout" ? "That set took too long to generate." : "I wasn't able to create something from that.";
+                var imsg = $"Oops! {reason} Here's my best attempt for that Ditto!";
+                await Context.Channel.SendPKMAsync(pkm, imsg).ConfigureAwait(false);
+                return;
+            }
+
+            pkm.ResetPartyStats();
+            var sig = Context.User.GetFavor();
+            await Context.AddToQueueAsync(code, Context.User.Username, sig, (PK8)pkm, PokeRoutineType.LinkTrade, PokeTradeType.SupportTrade).ConfigureAwait(false);
+        }
+
         [Command("TradeCordCatch")]
         [Alias("k", "catch")]
         [Summary("Catch a random Pokémon.")]
@@ -1019,7 +1099,7 @@ namespace SysBot.Pokemon.Discord
                 {
                     page--;
                     embed.Fields[0].Value = pageContent[page];
-                    embed.Footer.Text = $"Page {page + 1 } of {pageContent.Count}";
+                    embed.Footer.Text = $"Page {page + 1} of {pageContent.Count}";
                     await msg.RemoveReactionAsync(reactions[0], UserReactionBack);
                     await msg.ModifyAsync(msg => msg.Embed = embed.Build()).ConfigureAwait(false);
                     sw.Restart();
@@ -1343,6 +1423,22 @@ namespace SysBot.Pokemon.Discord
                     }
                 }
             }
+        }
+
+        public static async Task<bool> TrollAsync(SocketCommandContext context, bool invalid, IBattleTemplate set)
+        {
+            var rng = new Random();
+            var path = Info.Hub.Config.Trade.MemeFileNames.Split(',');
+            var msg = $"Oops! I wasn't able to create that {GameInfo.Strings.Species[set.Species]}. Here's a meme instead!\n";
+            if (path.Length == 0)
+                path = new string[] { "https://i.imgur.com/qaCwr09.png" }; //If memes enabled but none provided, use a default one.
+
+            if (invalid || !ItemRestrictions.IsHeldItemAllowed(set.HeldItem, 8) || (set.Nickname.ToLower() == "egg" && !TradeExtensions.ValidEgg.Contains(set.Species)))
+            {
+                await context.Channel.SendMessageAsync($"{(invalid ? msg : "")}{path[rng.Next(path.Length)]}").ConfigureAwait(false);
+                return true;
+            }
+            return false;
         }
 
         private int SpeciesRand(PK8 pk, string res) => res == "Regenerated" && (!pk.FatefulEncounter ? !pk.IsNicknamed : pk.SWSH) ? pk.Species : 0;

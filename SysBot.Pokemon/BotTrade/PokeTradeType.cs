@@ -10,5 +10,6 @@
         TradeCord,
         Dump,
         Giveaway,
+        SupportTrade,
     }
 }

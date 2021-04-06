@@ -312,34 +312,24 @@ namespace SysBot.Pokemon
             return pkm;
         }
 
-        public bool IsItemMule(PK8 pk8)
+        public static void DittoTrade(PKM pkm)
         {
-            if (Hub.Config.Trade.ItemMuleSpecies == Species.None || Hub.Config.Trade.DittoTrade && pk8.Species == 132 || Hub.Config.Trade.EggTrade && pk8.Nickname == "Egg")
-                return true;
-            return !(pk8.Species != SpeciesName.GetSpeciesID(Hub.Config.Trade.ItemMuleSpecies.ToString()) || pk8.IsShiny);
+            var dittoStats = new string[] { "atk", "spe", "spa" };
+            var nickname = pkm.Nickname.ToLower();
+            pkm.StatNature = pkm.Nature;
+            pkm.Met_Location = 162;
+            pkm.Ball = 21;
+            pkm.IVs = new int[] { 31, nickname.Contains(dittoStats[0]) ? 0 : 31, 31, nickname.Contains(dittoStats[1]) ? 0 : 31, nickname.Contains(dittoStats[2]) ? 0 : 31, 31 };
+            pkm.ClearHyperTraining();
+            pkm.ClearNickname();
+            _ = TrashBytes(pkm);
         }
 
-        public static void DittoTrade(PKM pk8)
+        public static void EggTrade(PK8 pk)
         {
-            var dittoStats = new string[] { "ATK", "SPE", "SPA" };
-            pk8.StatNature = pk8.Nature;
-            pk8.SetAbility(7);
-            pk8.SetAbilityIndex(1);
-            pk8.Met_Level = 60;
-            pk8.Move1 = 144;
-            pk8.Move1_PP = 0;
-            pk8.Met_Location = 154;
-            pk8.Ball = 21;
-            pk8.IVs = new int[] { 31, pk8.Nickname.Contains(dittoStats[0]) ? 0 : 31, 31, pk8.Nickname.Contains(dittoStats[1]) ? 0 : 31, pk8.Nickname.Contains(dittoStats[2]) ? 0 : 31, 31 };
-            pk8.SetSuggestedHyperTrainingData();
-            _ = TrashBytes(pk8);
-        }
-
-        public static void EggTrade(PK8 pkm)
-        {
-            pkm = (PK8)TrashBytes(pkm);
-            pkm.IsNicknamed = true;
-            pkm.Nickname = pkm.Language switch
+            pk = (PK8)TrashBytes(pk);
+            pk.IsNicknamed = true;
+            pk.Nickname = pk.Language switch
             {
                 1 => "タマゴ",
                 3 => "Œuf",
@@ -351,38 +341,38 @@ namespace SysBot.Pokemon
                 _ => "Egg",
             };
 
-            pkm.IsEgg = true;
-            pkm.Egg_Location = 60002;
-            pkm.MetDate = DateTime.Parse("2020/10/20");
-            pkm.EggMetDate = pkm.MetDate;
-            pkm.HeldItem = 0;
-            pkm.CurrentLevel = 1;
-            pkm.EXP = 0;
-            pkm.DynamaxLevel = 0;
-            pkm.Met_Level = 1;
-            pkm.Met_Location = 30002;
-            pkm.CurrentHandler = 0;
-            pkm.OT_Friendship = 1;
-            pkm.HT_Name = "";
-            pkm.HT_Friendship = 0;
-            pkm.HT_Language = 0;
-            pkm.HT_Gender = 0;
-            pkm.HT_Memory = 0;
-            pkm.HT_Feeling = 0;
-            pkm.HT_Intensity = 0;
-            pkm.StatNature = pkm.Nature;
-            pkm.EVs = new int[] { 0, 0, 0, 0, 0, 0 };
-            pkm.Markings = new int[] { 0, 0, 0, 0, 0, 0, 0, 0 };
-            pkm.ClearRecordFlags();
-            pkm.ClearRelearnMoves();
-            pkm.Moves = new int[] { 0, 0, 0, 0 };
-            var la = new LegalityAnalysis(pkm);
-            pkm.SetRelearnMoves(MoveSetApplicator.GetSuggestedRelearnMoves(la));
-            pkm.Moves = pkm.RelearnMoves;
-            pkm.Move1_PPUps = pkm.Move2_PPUps = pkm.Move3_PPUps = pkm.Move4_PPUps = 0;
-            pkm.SetMaximumPPCurrent(pkm.Moves);
-            pkm.SetSuggestedHyperTrainingData();
-            pkm.SetSuggestedRibbons(la.EncounterMatch);
+            pk.IsEgg = true;
+            pk.Egg_Location = 60002;
+            pk.MetDate = DateTime.Parse("2020/10/20");
+            pk.EggMetDate = pk.MetDate;
+            pk.HeldItem = 0;
+            pk.CurrentLevel = 1;
+            pk.EXP = 0;
+            pk.DynamaxLevel = 0;
+            pk.Met_Level = 1;
+            pk.Met_Location = 30002;
+            pk.CurrentHandler = 0;
+            pk.OT_Friendship = 1;
+            pk.HT_Name = "";
+            pk.HT_Friendship = 0;
+            pk.HT_Language = 0;
+            pk.HT_Gender = 0;
+            pk.HT_Memory = 0;
+            pk.HT_Feeling = 0;
+            pk.HT_Intensity = 0;
+            pk.StatNature = pk.Nature;
+            pk.EVs = new int[] { 0, 0, 0, 0, 0, 0 };
+            pk.Markings = new int[] { 0, 0, 0, 0, 0, 0, 0, 0 };
+            pk.ClearRecordFlags();
+            pk.ClearRelearnMoves();
+            pk.Moves = new int[] { 0, 0, 0, 0 };
+            var la = new LegalityAnalysis(pk);
+            pk.SetRelearnMoves(MoveSetApplicator.GetSuggestedRelearnMoves(la));
+            pk.Moves = pk.RelearnMoves;
+            pk.Move1_PPUps = pk.Move2_PPUps = pk.Move3_PPUps = pk.Move4_PPUps = 0;
+            pk.SetMaximumPPCurrent(pk.Moves);
+            pk.SetSuggestedHyperTrainingData();
+            pk.SetSuggestedRibbons(la.EncounterMatch);
         }
 
         public static List<string> SpliceAtWord(string entry, int start, int length)

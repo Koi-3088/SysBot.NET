@@ -1,6 +1,7 @@
 ﻿using Discord;
 using Discord.WebSocket;
 using PKHeX.Core;
+using System.Linq;
 using System.Threading.Tasks;
 
 namespace SysBot.Pokemon.Discord
@@ -17,12 +18,8 @@ namespace SysBot.Pokemon.Discord
 
             var template = AutoLegalityWrapper.GetTemplate(set);
             var pkm = sav.GetLegal(template, out var result);
-
-            if (SysCordInstance.Self.Hub.Config.Trade.EggTrade && pkm.Nickname == "Egg")
+            if (pkm.Nickname.ToLower() == "egg" && TradeExtensions.ValidEgg.Contains(pkm.Species))
                 TradeExtensions.EggTrade((PK8)pkm);
-
-            if (SysCordInstance.Self.Hub.Config.Trade.DittoTrade && set.Species == 132)
-                TradeExtensions.DittoTrade(pkm);
 
             var la = new LegalityAnalysis(pkm);
             var spec = GameInfo.Strings.Species[template.Species];
