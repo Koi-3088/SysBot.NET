@@ -226,7 +226,7 @@ namespace SysBot.Pokemon
             var la = new LegalityAnalysis(pkm);
             var enc = la.Info.EncounterMatch;
             if (!GalarFossils.Contains(pkm.Species) && !pkm.FatefulEncounter)
-                pkm.SetAbilityIndex(Legends.Contains(pkm.Species) ? 0 : pkm.Met_Location == 244 || pkm.Met_Location == 30001 ? 2 : enc.Version < GameVersion.US ? 2 : Random.Next(3));
+                pkm.SetAbilityIndex(Legends.Contains(pkm.Species) ? 0 : pkm.Met_Location == 244 || enc.Version < GameVersion.US || pkm.Met_Location == 30001 ? 2 : enc is EncounterStatic8N && enc.LevelMin < 35 ? Random.Next(2) : Random.Next(3));
 
             pkm.IVs = enc is EncounterStatic8N ? pkm.SetRandomIVs(5) : pkm.FatefulEncounter ? pkm.IVs : enc is EncounterSlot8 || enc is EncounterStatic8U ? pkm.SetRandomIVs(4) : enc is EncounterSlot8GO || enc is EncounterSlot7GO ? pkm.SetRandomIVsGO() : pkm.SetRandomIVs(3);
             if (enc is EncounterStatic8)
@@ -246,6 +246,14 @@ namespace SysBot.Pokemon
 
             if (!LegalEdits.ValidBall(pkm) || pkm.Species == (int)Species.Mew)
                 BallApplicator.ApplyBallLegalRandom(pkm);
+
+            if (pkm.Species == (int)Species.Mew && enc.Version == GameVersion.GO && pkm.IsShiny)
+            {
+                pkm.IVs = new int[] { 25, 23, 23, 23, 23, 7};
+                pkm.Ball = 4;
+                pkm.SetAbilityIndex(Random.Next(2));
+            }
+
             pkm = TrashBytes(pkm);
             return pkm;
         }

@@ -181,7 +181,7 @@ namespace SysBot.Pokemon.Discord
             pkm = PKMConverter.ConvertToType(pkm, typeof(PK8), out _) ?? pkm;
             if (pkm.HeldItem == 0)
             {
-                await ReplyAsync($"{Context.User.Username}, unrecognized item.").ConfigureAwait(false);
+                await ReplyAsync($"{Context.User.Username}, the item you entered wasn't recognized.").ConfigureAwait(false);
                 return;
             }
 
@@ -396,7 +396,7 @@ namespace SysBot.Pokemon.Discord
                 matches = list.FindAll(x => x.Shiny && name.Contains(x.Species + x.Form) && !x.Traded);
             else if (filters != "" && filters.Contains(" ")) // Look for name, ball, and shiny
                 matches = list.FindAll(x => x.Shiny && filters.Contains(x.Ball.ToLower()) && name.Contains(x.Species + x.Form) && !x.Traded);
-            else matches = list.FindAll(x => (name == "All" ? x.Species != "" : name == "Egg" ? x.Egg : name == "Shinies" ? x.Shiny : x.Ball == name || x.Species == name || (x.Species + x.Form == name) || x.Form.Replace("-", "") == name) && !x.Traded);
+            else matches = list.FindAll(x => (name == "All" ? x.Species != "" : name == "Legendaries" ? TradeExtensions.Legends.Contains(SpeciesName.GetSpeciesID(x.Species)) : name == "Egg" ? x.Egg : name == "Shinies" ? x.Shiny : x.Ball == name || x.Species == name || (x.Species + x.Form == name) || x.Form.Replace("-", "") == name) && !x.Traded);
 
             HashSet<string> count = new(), countSh = new();
             if (name == "Shinies")
@@ -591,7 +591,7 @@ namespace SysBot.Pokemon.Discord
 
             if (withdraw)
             {
-                if (TCInfo.Daycare1.Species == 0 && TCInfo.Daycare2.Species == 0)
+                if (TCInfo.Daycare1.ID == 0 && TCInfo.Daycare2.ID == 0)
                 {
                     await Context.Message.Channel.SendMessageAsync("You do not have anything in daycare.").ConfigureAwait(false);
                     return;
@@ -617,7 +617,7 @@ namespace SysBot.Pokemon.Discord
                 }
                 else
                 {
-                    bool fullDC = TCInfo.Daycare1.Species != 0 && TCInfo.Daycare2.Species != 0;
+                    bool fullDC = TCInfo.Daycare1.ID != 0 && TCInfo.Daycare2.ID != 0;
                     speciesString = !fullDC ? $"[ID: {(TCInfo.Daycare1.ID != 0 ? TCInfo.Daycare1.ID : TCInfo.Daycare2.ID)}] {(TCInfo.Daycare1.ID != 0 && TCInfo.Daycare1.Shiny ? "★" : TCInfo.Daycare2.ID != 0 && TCInfo.Daycare2.Shiny ? "★" : "")}{SpeciesName.GetSpeciesNameGeneration(TCInfo.Daycare1.ID != 0 ? TCInfo.Daycare1.Species : TCInfo.Daycare2.Species, 2, 8)}{(TCInfo.Daycare1.ID != 0 ? TCInfo.Daycare1.Form : TCInfo.Daycare2.Form)}" :
                         $"[ID: {TCInfo.Daycare1.ID}] {(TCInfo.Daycare1.Shiny ? "★" : "")}{SpeciesName.GetSpeciesNameGeneration(TCInfo.Daycare1.Species, 2, 8)}{TCInfo.Daycare1.Form} and [ID: {TCInfo.Daycare2.ID}] {(TCInfo.Daycare2.Shiny ? "★" : "")}{SpeciesName.GetSpeciesNameGeneration(TCInfo.Daycare2.Species, 2, 8)}{TCInfo.Daycare2.Form}";
                     TCInfo.Daycare1 = new();
@@ -632,8 +632,10 @@ namespace SysBot.Pokemon.Discord
                     return;
                 }
 
+                var speciesStr = string.Join("", match.Species.Split('-', ' ', '’', '.'));
+                speciesStr += match.Path.Contains("Nidoran-M") ? "M" : match.Path.Contains("Nidoran-F") ? "F" : "";
                 Enum.TryParse(match.Ball, out Ball ball);
-                Enum.TryParse(string.Join("", match.Species.Split('-', ' ', '’', '.')), out Species species);
+                Enum.TryParse(speciesStr, out Species species);
                 if ((TCInfo.Daycare1.ID == 0 && TCInfo.Daycare2.ID == 0) || (TCInfo.Daycare1.ID == 0 && TCInfo.Daycare2.ID != int.Parse(id)))
                     TCInfo.Daycare1 = new TradeExtensions.Daycare1 { Ball = (int)ball, Form = match.Form, ID = match.ID, Shiny = match.Shiny, Species = (int)species };
                 else if (TCInfo.Daycare2.ID == 0 && TCInfo.Daycare1.ID != int.Parse(id))
