@@ -12,7 +12,10 @@ namespace SysBot.Pokemon
         public string TradeCordChannels { get; set; } = string.Empty;
 
         [Category(FeatureToggle), Description("Enter the amount of time in seconds until a user can catch again.")]
-        public double TradeCordCooldown { get; set; } = 60;
+        public int TradeCordCooldown { get; set; } = 60;
+
+        [Category(FeatureToggle), Description("Enter how frequently (in seconds) \"UserInfo.json\" should be updated.")]
+        public int ConfigUpdateInterval { get; set; } = 60;
 
         [Category(FeatureToggle), Description("Enter the likelihood of a successful catch. Default: 90.")]
         public int CatchRate { get; set; } = 90;

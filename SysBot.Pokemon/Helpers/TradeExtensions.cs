@@ -1,27 +1,30 @@
-﻿using PKHeX.Core;
-using PKHeX.Core.AutoMod;
-using Newtonsoft.Json;
-using System;
+﻿using System;
 using System.IO;
 using System.Linq;
+using System.Diagnostics;
+using System.Threading;
+using System.Threading.Tasks;
 using System.Collections.Generic;
+using PKHeX.Core;
+using PKHeX.Core.AutoMod;
+using Newtonsoft.Json;
 
 namespace SysBot.Pokemon
 {
     public class TradeExtensions
     {
-        public PokeTradeHub<PK8> Hub;
-        public static int XCoordStart = 0;
-        public static int YCoordStart = 0;
+        public static Random Random = new Random();
+        public static byte[] Data = new byte[] { };
+        public static bool TCInitialized;
+        private static bool TCRWLockEnable;
+        private static bool NewUserLockNoCD;
+        private static readonly HashSet<ulong> CommandInProgress = new();
         public static List<string> TradeCordPath = new();
         public static List<string> TradeCordCooldown = new();
-        public static byte[] Data = new byte[] { };
-        public static Random Random = new Random();
-
-        public TradeExtensions(PokeTradeHub<PK8> hub)
-        {
-            Hub = hub;
-        }
+        private static readonly string InfoPath = "TradeCord\\UserInfo.json";
+        public static TCUserInfoRoot UserInfo = GetRoot<TCUserInfoRoot>(InfoPath);
+        public static int XCoordStart = 0;
+        public static int YCoordStart = 0;
 
         public static uint AlcremieDecoration { get => BitConverter.ToUInt32(Data, 0xE4); set => BitConverter.GetBytes(value).CopyTo(Data, 0xE4); }
         public static int[] ValidEgg =
@@ -111,56 +114,71 @@ namespace SysBot.Pokemon
             public PK8 EggPKM { get => eggPKM; set => eggPKM = value; }
         }
 
-        public class Daycare1
-        {
-            public bool Shiny { get; set; }
-            public int ID { get; set; }
-            public int Species { get; set; }
-            public string Form { get; set; } = "";
-            public int Ball { get; set; }
-        }
-
-        public class Daycare2
-        {
-            public bool Shiny { get; set; }
-            public int ID { get; set; }
-            public int Species { get; set; }
-            public string Form { get; set; } = "";
-            public int Ball { get; set; }
-        }
-
-        public class Catch
-        {
-            public bool Shiny { get; set; }
-            public int ID { get; set; }
-            public string Ball { get; set; } = "None";
-            public string Species { get; set; } = "None";
-            public string Form { get; set; } = "";
-            public bool Egg { get; set; }
-            public string Path { get; set; } = "";
-            public bool Traded { get; set; }
-        }
-
-        public class TCUserInfo
-        {
-            public ulong UserID { get; set; }
-            public int CatchCount { get; set; }
-            public Daycare1 Daycare1 { get; set; } = new();
-            public Daycare2 Daycare2 { get; set; } = new();
-            public string OTName { get; set; } = "";
-            public string OTGender { get; set; } = "";
-            public int TID { get; set; }
-            public int SID { get; set; }
-            public string Language { get; set; } = "";
-            public HashSet<int> Dex { get; set; } = new();
-            public int DexCompletionCount { get; set; }
-            public HashSet<int> Favorites { get; set; } = new();
-            public HashSet<Catch> Catches { get; set; } = new();
-        }
-
         public class TCUserInfoRoot
         {
             public HashSet<TCUserInfo> Users { get; set; } = new();
+
+            public class TCUserInfo
+            {
+                public ulong UserID { get; set; }
+                public int CatchCount { get; set; }
+                public Daycare1 Daycare1 { get; set; } = new();
+                public Daycare2 Daycare2 { get; set; } = new();
+                public string OTName { get; set; } = "";
+                public string OTGender { get; set; } = "";
+                public int TID { get; set; }
+                public int SID { get; set; }
+                public string Language { get; set; } = "";
+                public HashSet<int> Dex { get; set; } = new();
+                public int DexCompletionCount { get; set; }
+                public HashSet<int> Favorites { get; set; } = new();
+                public HashSet<Catch> Catches { get; set; } = new();
+            }
+
+            public class Catch
+            {
+                public bool Shiny { get; set; }
+                public int ID { get; set; }
+                public string Ball { get; set; } = "None";
+                public string Species { get; set; } = "None";
+                public string Form { get; set; } = "";
+                public bool Egg { get; set; }
+                public string Path { get; set; } = "";
+                public bool Traded { get; set; }
+            }
+
+            public class Daycare1
+            {
+                public bool Shiny { get; set; }
+                public int ID { get; set; }
+                public int Species { get; set; }
+                public string Form { get; set; } = "";
+                public int Ball { get; set; }
+            }
+
+            public class Daycare2
+            {
+                public bool Shiny { get; set; }
+                public int ID { get; set; }
+                public int Species { get; set; }
+                public string Form { get; set; } = "";
+                public int Ball { get; set; }
+            }
+        }
+
+        private static async Task SerializationMonitor(int interval)
+        {
+            var sw = new Stopwatch();
+            sw.Start();
+            while (true)
+            {
+                if (sw.ElapsedMilliseconds / 1000 >= interval)
+                {
+                    SerializeInfo(UserInfo, InfoPath, true);
+                    sw.Restart();
+                }
+                else await Task.Delay(15_000).ConfigureAwait(false);
+            }
         }
 
         public static bool ShinyLockCheck(int species, string ball, bool form)
@@ -255,7 +273,7 @@ namespace SysBot.Pokemon
             return pkm;
         }
 
-        public static PKM EggRngRoutine(TCUserInfo info, string trainerInfo, int evo1, int evo2, bool star, bool square)
+        public static PKM EggRngRoutine(TCUserInfoRoot.TCUserInfo info, string trainerInfo, int evo1, int evo2, bool star, bool square)
         {
             var pkm1 = PKMConverter.GetPKMfromBytes(File.ReadAllBytes(info.Catches.FirstOrDefault(x => x.ID == info.Daycare1.ID).Path));
             var pkm2 = PKMConverter.GetPKMfromBytes(File.ReadAllBytes(info.Catches.FirstOrDefault(x => x.ID == info.Daycare2.ID).Path));
@@ -489,72 +507,91 @@ namespace SysBot.Pokemon
             else return (PK8)mgPkm;
         }
 
-        private static void AddNewUser(TCUserInfoRoot root, ulong id, string file)
-        {
-            root.Users.Add(new TCUserInfo { UserID = id });
-            SerializeInfo(root, file);
-        }
-
-        public static T? GetRoot<T>(string file, TextReader? textReader = null)
+        public static T GetRoot<T>(string file, TextReader? textReader = null) where T : new()
         {
             JsonSerializer serializer = new();
             if (textReader == null)
             {
-                using TextReader reader = File.OpenText(file);
-                T? root = (T?)serializer.Deserialize(reader, typeof(T));
+                if (!File.Exists(file))
+                {
+                    Directory.CreateDirectory(file.Split('\\')[0]);
+                    File.Create(file).Close();
+                }
+
+                using var reader = new JsonTextReader(File.OpenText(file));
+                T root = (T)serializer.Deserialize(reader, typeof(T));
                 reader.Close();
-                return root;
+                return root ?? new();
             }
             else
             {
-                T? root = (T?)serializer.Deserialize(textReader, typeof(T));
-                return root;
+                T root = (T)serializer.Deserialize(textReader, typeof(T));
+                return root ?? new();
             }
         }
 
-        public static TCUserInfo GetUserInfo(ulong id, string file)
+        private static void AddNewUser(ulong id) => UserInfo.Users.Add(new TCUserInfoRoot.TCUserInfo { UserID = id });
+
+        public static async Task<TCUserInfoRoot.TCUserInfo> GetUserInfo(ulong id, int cd, int interval = 0, bool gift = false)
         {
-            var root = GetRoot<TCUserInfoRoot>(file);
-            var user = root?.Users.FirstOrDefault(x => x.UserID == id);
-            if (root == null)
+            if (!TCInitialized)
             {
-                root = new();
-                AddNewUser(root, id, file);
+                TCInitialized = true;
+                _ = Task.Run(() => SerializationMonitor(interval));
             }
-            else if (user == null)
-                AddNewUser(root, id, file);
 
-            return user ?? root.Users.FirstOrDefault(x => x.UserID == id);
-        }
+            CommandInProgress.Add(id);
+            while (TCRWLockEnable || NewUserLockNoCD || (CommandInProgress.Contains(id) && gift))
+                await Task.Delay(0_100).ConfigureAwait(false);
 
-        public static void UpdateUserInfo(TCUserInfo info, string file)
-        {
-            using TextReader reader = File.OpenText(file);
-            reader.Close();
-            var root = GetRoot<TCUserInfoRoot>(file);
-            if (info != null)
+            var user = UserInfo.Users.FirstOrDefault(x => x.UserID == id);
+            if (user == null)
             {
-                if (root == null)
-                {
-                    root = new();
-                    root.Users.Add(info);
-                }
-                else
-                {
-                    var user = root.Users.FirstOrDefault(x => x.UserID == info.UserID);
-                    root.Users.Remove(user);
-                    root.Users.Add(info);
-                }
-                SerializeInfo(root, file);
+                if (user == null && cd == 0)
+                    NewUserLockNoCD = true;
+                AddNewUser(id);
             }
+            return user ?? new() { UserID = id };
         }
 
-        public static void SerializeInfo(object? root, string filePath)
+        public static async Task UpdateUserInfo(TCUserInfoRoot.TCUserInfo info)
         {
-            JsonSerializer serializer = new();
-            using StreamWriter writer = File.CreateText(filePath);
-            serializer.Formatting = Formatting.Indented;
-            serializer.Serialize(writer, root);
+            while (TCRWLockEnable)
+                await Task.Delay(0_100).ConfigureAwait(false);
+
+            UserInfo.Users.RemoveWhere(x => x.UserID == info.UserID);
+            UserInfo.Users.Add(info);
+            NewUserLockNoCD = false;
+            CommandInProgress.Remove(info.UserID);
+        }
+
+        public static void SerializeInfo(object? root, string filePath, bool tc = false)
+        {
+            if (tc)
+                TCRWLockEnable = true;
+
+            bool success = false;
+            for (int i = 0; i < 50; i++)
+            {
+                if (success)
+                    break;
+
+                try
+                {
+                    JsonSerializer serializer = new();
+                    using StreamWriter writer = File.CreateText(filePath);
+                    serializer.Formatting = Formatting.Indented;
+                    serializer.Serialize(writer, root);
+                    success = true;
+                }
+                catch (IOException)
+                {
+                    Thread.Sleep(0_100);
+                }
+            }
+
+            if (tc)
+                TCRWLockEnable = false;
         }
 
         public static void TradeStatusUpdate(string id, bool cancelled = false)
