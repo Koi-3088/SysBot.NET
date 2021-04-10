@@ -210,9 +210,6 @@ namespace SysBot.Pokemon
             if (pkm.IsShiny && pkm.Met_Location == 244)
                 CommonEdits.SetShiny(pkm, Shiny.AlwaysStar);
 
-            if (TradeEvo.Contains(pkm.Species))
-                pkm.HeldItem = 229;
-
             pkm.Nature = pkm.Species == (int)Species.Toxtricity && pkm.Form > 0 ? LowKey[Random.Next(LowKey.Length)] : pkm.Species == (int)Species.Toxtricity && pkm.Form == 0 ? Amped[Random.Next(Amped.Length)] : pkm.FatefulEncounter ? pkm.Nature : Random.Next(25);
             pkm.StatNature = pkm.Nature;
             pkm.ClearHyperTraining();

@@ -305,6 +305,9 @@ namespace SysBot.Pokemon.Discord
                 if (TCRng.CatchPKM.Species == 0)
                     SetHandler(speciesName, trainerInfo);
 
+                if (TradeExtensions.TradeEvo.Contains(TCRng.CatchPKM.Species))
+                    TCRng.CatchPKM.HeldItem = 229;
+
                 if (!await CatchHandler(speciesName).ConfigureAwait(false))
                     return;
             }
