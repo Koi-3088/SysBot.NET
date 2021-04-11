@@ -172,7 +172,7 @@ namespace SysBot.Pokemon
             sw.Start();
             while (true)
             {
-                if (sw.ElapsedMilliseconds / 1000 >= interval)
+                if (sw.ElapsedMilliseconds / 1000 >= interval && !TCRWLockEnable)
                 {
                     SerializeInfo(UserInfo, InfoPath, true);
                     sw.Restart();
@@ -509,7 +509,6 @@ namespace SysBot.Pokemon
 
         public static T GetRoot<T>(string file, TextReader? textReader = null) where T : new()
         {
-            JsonSerializer serializer = new();
             if (textReader == null)
             {
                 if (!File.Exists(file))
@@ -518,13 +517,18 @@ namespace SysBot.Pokemon
                     File.Create(file).Close();
                 }
 
-                using var reader = new JsonTextReader(File.OpenText(file));
-                T root = (T)serializer.Deserialize(reader, typeof(T));
-                reader.Close();
+                T root;
+                using StreamReader sr = File.OpenText(file);
+                using (JsonReader reader = new JsonTextReader(sr))
+                {
+                    JsonSerializer serializer = new();
+                    root = (T)serializer.Deserialize(reader, typeof(T));
+                }
                 return root ?? new();
             }
             else
             {
+                JsonSerializer serializer = new();
                 T root = (T)serializer.Deserialize(textReader, typeof(T));
                 return root ?? new();
             }
@@ -569,15 +573,15 @@ namespace SysBot.Pokemon
 
         public static void SerializeInfo(object? root, string filePath, bool tc = false)
         {
+            while (TCRWLockEnable && tc)
+                Thread.Sleep(0_100);
+
             if (tc)
                 TCRWLockEnable = true;
 
             bool success = false;
-            for (int i = 0; i < 50; i++)
+            while (!success)
             {
-                if (success)
-                    break;
-
                 try
                 {
                     JsonSerializer serializer = new();
@@ -590,6 +594,9 @@ namespace SysBot.Pokemon
                 {
                     Thread.Sleep(0_100);
                 }
+
+                if (success)
+                    break;
             }
 
             if (tc)
