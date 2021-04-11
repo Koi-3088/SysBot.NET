@@ -540,8 +540,10 @@ namespace SysBot.Pokemon
                 _ = Task.Run(() => SerializationMonitor(interval));
             }
 
-            CommandInProgress.Add(id);
-            while (TCRWLockEnable || NewUserLockNoCD || (CommandInProgress.Contains(id) && gift))
+            if (!gift)
+                CommandInProgress.Add(id);
+
+            while (TCRWLockEnable || NewUserLockNoCD || (CommandInProgress.FirstOrDefault(x => x == id) != default && gift))
                 await Task.Delay(0_100).ConfigureAwait(false);
 
             var user = UserInfo.Users.FirstOrDefault(x => x.UserID == id);
@@ -562,7 +564,7 @@ namespace SysBot.Pokemon
             UserInfo.Users.RemoveWhere(x => x.UserID == info.UserID);
             UserInfo.Users.Add(info);
             NewUserLockNoCD = false;
-            CommandInProgress.Remove(info.UserID);
+            CommandInProgress.RemoveWhere(x => x == info.UserID);
         }
 
         public static void SerializeInfo(object? root, string filePath, bool tc = false)
