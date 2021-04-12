@@ -18,7 +18,7 @@ namespace SysBot.Pokemon
         public static bool TCInitialized;
         private static bool TCRWLockEnable;
         private static bool NewUserLockNoCD;
-        private static readonly HashSet<ulong> CommandInProgress = new();
+        private static readonly List<ulong> CommandInProgress = new();
         public static List<string> TradeCordPath = new();
         public static List<string> TradeCordCooldown = new();
         private static readonly string InfoPath = "TradeCord\\UserInfo.json";
@@ -544,10 +544,8 @@ namespace SysBot.Pokemon
                 _ = Task.Run(() => SerializationMonitor(interval));
             }
 
-            if (!gift)
-                CommandInProgress.Add(id);
-
-            while (TCRWLockEnable || NewUserLockNoCD || (CommandInProgress.FirstOrDefault(x => x == id) != default && gift))
+            CommandInProgress.Add(id);
+            while (TCRWLockEnable || NewUserLockNoCD || (CommandInProgress.FindAll(x => x == id).Count > 1 && gift))
                 await Task.Delay(0_100).ConfigureAwait(false);
 
             var user = UserInfo.Users.FirstOrDefault(x => x.UserID == id);
@@ -568,7 +566,7 @@ namespace SysBot.Pokemon
             UserInfo.Users.RemoveWhere(x => x.UserID == info.UserID);
             UserInfo.Users.Add(info);
             NewUserLockNoCD = false;
-            CommandInProgress.RemoveWhere(x => x == info.UserID);
+            CommandInProgress.RemoveAll(x => x == info.UserID);
         }
 
         public static void SerializeInfo(object? root, string filePath, bool tc = false)
