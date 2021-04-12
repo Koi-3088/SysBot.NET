@@ -18,7 +18,8 @@ namespace SysBot.Pokemon
         public static bool TCInitialized;
         private static bool TCRWLockEnable;
         private static bool NewUserLockNoCD;
-        private static readonly List<ulong> CommandInProgress = new();
+        public static readonly List<ulong> CommandInProgress = new();
+        private static readonly List<ulong> GiftInProgress = new();
         public static List<string> TradeCordPath = new();
         public static List<string> TradeCordCooldown = new();
         private static readonly string InfoPath = "TradeCord\\UserInfo.json";
@@ -297,6 +298,7 @@ namespace SysBot.Pokemon
                 "Nidoran" => _ = specificEgg && dittoLoc == 1 ? (evo2 == 32 ? "-M" : "-F") : specificEgg && dittoLoc == 2 ? (evo1 == 32 ? "-M" : "-F") : (Random.Next(2) == 0 ? "-M" : "-F"),
                 "Meowth" => _ = FormOutput(speciesRngID, specificEgg && (pkm1.Species == 863 || pkm2.Species == 863) ? 2 : specificEgg && dittoLoc == 1 ? pkm2.Form : specificEgg && dittoLoc == 2 ? pkm1.Form : Random.Next(forms.Length), out _),
                 "Yamask" => FormOutput(speciesRngID, specificEgg && (pkm1.Species == 867 || pkm2.Species == 867) ? 1 : specificEgg && dittoLoc == 1 ? pkm2.Form : specificEgg && dittoLoc == 2 ? pkm1.Form : Random.Next(forms.Length), out _),
+                "Zigzagoon" => _ = FormOutput(speciesRngID, specificEgg && (pkm1.Species == 862 || pkm2.Species == 862) ? 1 : specificEgg && dittoLoc == 1 ? pkm2.Form : specificEgg && dittoLoc == 2 ? pkm1.Form : Random.Next(forms.Length), out _),
                 "Sinistea" or "Milcery" => "",
                 _ => FormOutput(speciesRngID, specificEgg && pkm1.Form == pkm2.Form ? pkm1.Form : specificEgg && dittoLoc == 1 ? pkm2.Form : specificEgg && dittoLoc == 2 ? pkm1.Form : Random.Next(forms.Length), out _),
             };
@@ -544,8 +546,12 @@ namespace SysBot.Pokemon
                 _ = Task.Run(() => SerializationMonitor(interval));
             }
 
-            CommandInProgress.Add(id);
-            while (TCRWLockEnable || NewUserLockNoCD || (CommandInProgress.FindAll(x => x == id).Count > 1 && gift))
+            if (!gift)
+                CommandInProgress.Add(id);
+            else if (gift)
+                GiftInProgress.Add(id);
+
+            while (TCRWLockEnable || NewUserLockNoCD || (CommandInProgress.Contains(id) && GiftInProgress.Contains(id)))
                 await Task.Delay(0_100).ConfigureAwait(false);
 
             var user = UserInfo.Users.FirstOrDefault(x => x.UserID == id);
@@ -558,7 +564,7 @@ namespace SysBot.Pokemon
             return user ?? new() { UserID = id };
         }
 
-        public static async Task UpdateUserInfo(TCUserInfoRoot.TCUserInfo info)
+        public static async Task UpdateUserInfo(TCUserInfoRoot.TCUserInfo info, bool gift = false)
         {
             while (TCRWLockEnable)
                 await Task.Delay(0_100).ConfigureAwait(false);
@@ -567,6 +573,8 @@ namespace SysBot.Pokemon
             UserInfo.Users.Add(info);
             NewUserLockNoCD = false;
             CommandInProgress.RemoveAll(x => x == info.UserID);
+            if (gift)
+                GiftInProgress.Remove(info.UserID);
         }
 
         public static void SerializeInfo(object? root, string filePath, bool tc = false)

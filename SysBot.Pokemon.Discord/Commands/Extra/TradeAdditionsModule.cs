@@ -701,22 +701,26 @@ namespace SysBot.Pokemon.Discord
                 return;
             }
 
-            var receivingUser = await TradeExtensions.GetUserInfo(Context.Message.MentionedUsers.First().Id, Hub.Config.TradeCord.TradeCordCooldown, 0, true).ConfigureAwait(false);
+            TCInfo.Catches.Remove(match);
+            await TradeExtensions.UpdateUserInfo(TCInfo).ConfigureAwait(false);
+            var mentionedUser = Context.Message.MentionedUsers.First().Id;
+            while (TradeExtensions.CommandInProgress.Contains(mentionedUser))
+                await Task.Delay(0_100).ConfigureAwait(false);
+
+            var receivingUser = await TradeExtensions.GetUserInfo(mentionedUser, Hub.Config.TradeCord.TradeCordCooldown, 0, true).ConfigureAwait(false);
             HashSet<int> newIDParse = new();
             foreach (var caught in receivingUser.Catches)
                 newIDParse.Add(caught.ID);
 
             var newID = Indexing(newIDParse.OrderBy(x => x).ToArray());
+            var newPath = $"{dir}\\{match.Path.Split('\\')[2].Replace(match.ID.ToString(), newID.ToString())}";
+            File.Move(match.Path, newPath);
             var embed = new EmbedBuilder { Color = Color.Purple };
             var name = $"{Context.User.Username}'s Gift";
-            var newPath = $"{dir}\\{match.Path.Split('\\')[2].Replace(match.ID.ToString(), newID.ToString())}";
-            var value = $"You gifted your {(match.Shiny ? "★" : "")}{match.Species}{match.Form} to {Context.Message.MentionedUsers.First().Username}.";
+            var value = $"You gifted your {(match.Shiny ? "★" : "")}{match.Species}{match.Form} to {Context.Message.MentionedUsers.First().Username}. New ID is {newID}.";
 
             receivingUser.Catches.Add(new() { Ball = match.Ball, Egg = match.Egg, Form = match.Form, ID = newID, Shiny = match.Shiny, Species = match.Species, Path = newPath, Traded = false });
-            await TradeExtensions.UpdateUserInfo(receivingUser).ConfigureAwait(false);
-            File.Move(match.Path, newPath);
-            TCInfo.Catches.Remove(match);
-            await TradeExtensions.UpdateUserInfo(TCInfo).ConfigureAwait(false);
+            await TradeExtensions.UpdateUserInfo(receivingUser, true).ConfigureAwait(false);
             await EmbedUtil(embed, name, value).ConfigureAwait(false);
         }
 
