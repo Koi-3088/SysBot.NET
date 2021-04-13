@@ -19,7 +19,6 @@ namespace SysBot.Pokemon
         private static bool TCRWLockEnable;
         private static bool NewUserLockNoCD;
         public static readonly List<ulong> CommandInProgress = new();
-        private static readonly List<ulong> GiftInProgress = new();
         public static List<string> TradeCordPath = new();
         public static List<string> TradeCordCooldown = new();
         private static readonly string InfoPath = "TradeCord\\UserInfo.json";
@@ -241,10 +240,12 @@ namespace SysBot.Pokemon
 
             var la = new LegalityAnalysis(pkm);
             var enc = la.Info.EncounterMatch;
+            var haRng = Random.Next(4) >= 2 ? 2 : 0;
             if (!GalarFossils.Contains(pkm.Species) && !pkm.FatefulEncounter)
-                pkm.SetAbilityIndex(Legends.Contains(pkm.Species) ? 0 : pkm.Met_Location == 244 || enc.Version < GameVersion.US || pkm.Met_Location == 30001 ? 2 : enc is EncounterStatic8N && enc.LevelMin < 35 ? Random.Next(2) : Random.Next(3));
+                pkm.SetAbilityIndex(Legends.Contains(pkm.Species) ? 0 : enc.Version < GameVersion.US ? haRng : enc is EncounterStatic8N && enc.LevelMin < 35 ? Random.Next(2) : Random.Next(3));
 
-            pkm.IVs = enc is EncounterStatic8N ? pkm.SetRandomIVs(5) : pkm.FatefulEncounter ? pkm.IVs : enc is EncounterSlot8 || enc is EncounterStatic8U ? pkm.SetRandomIVs(4) : enc is EncounterSlot8GO || enc is EncounterSlot7GO ? pkm.SetRandomIVsGO() : pkm.SetRandomIVs(3);
+            bool goMew = pkm.Species == (int)Species.Mew && enc.Version == GameVersion.GO && pkm.IsShiny;
+            pkm.IVs = goMew ? pkm.IVs : pkm.FatefulEncounter ? pkm.IVs : enc is EncounterStatic8N && enc.LevelMin >= 35 ? pkm.SetRandomIVs(5) : enc is EncounterSlot8 || enc is EncounterStatic8U ? pkm.SetRandomIVs(4) : enc is EncounterSlot8GO || enc is EncounterSlot7GO ? pkm.SetRandomIVsGO() : pkm.SetRandomIVs(3);
             if (enc is EncounterStatic8)
             {
                 while (!new LegalityAnalysis(pkm).Valid)
@@ -257,18 +258,8 @@ namespace SysBot.Pokemon
                 }
             }
 
-            if (pkm.Species == (int)Species.Melmetal && !pkm.FatefulEncounter)
-                pkm.Met_Level = 15;
-
-            if (!LegalEdits.ValidBall(pkm) || pkm.Species == (int)Species.Mew)
+            if (!LegalEdits.ValidBall(pkm) || (pkm.Species == (int)Species.Mew && enc.Version != GameVersion.GO))
                 BallApplicator.ApplyBallLegalRandom(pkm);
-
-            if (pkm.Species == (int)Species.Mew && enc.Version == GameVersion.GO && pkm.IsShiny)
-            {
-                pkm.IVs = new int[] { 25, 23, 23, 23, 23, 7};
-                pkm.Ball = 4;
-                pkm.SetAbilityIndex(Random.Next(2));
-            }
 
             pkm = TrashBytes(pkm);
             return pkm;
@@ -548,10 +539,8 @@ namespace SysBot.Pokemon
 
             if (!gift)
                 CommandInProgress.Add(id);
-            else if (gift)
-                GiftInProgress.Add(id);
 
-            while (TCRWLockEnable || NewUserLockNoCD || (CommandInProgress.Contains(id) && GiftInProgress.Contains(id)))
+            while (TCRWLockEnable || NewUserLockNoCD || (CommandInProgress.Count >= 1 && !CommandInProgress.Contains(id) && !gift))
                 await Task.Delay(0_100).ConfigureAwait(false);
 
             var user = UserInfo.Users.FirstOrDefault(x => x.UserID == id);
@@ -564,7 +553,7 @@ namespace SysBot.Pokemon
             return user ?? new() { UserID = id };
         }
 
-        public static async Task UpdateUserInfo(TCUserInfoRoot.TCUserInfo info, bool gift = false)
+        public static async Task UpdateUserInfo(TCUserInfoRoot.TCUserInfo info)
         {
             while (TCRWLockEnable)
                 await Task.Delay(0_100).ConfigureAwait(false);
@@ -573,8 +562,6 @@ namespace SysBot.Pokemon
             UserInfo.Users.Add(info);
             NewUserLockNoCD = false;
             CommandInProgress.RemoveAll(x => x == info.UserID);
-            if (gift)
-                GiftInProgress.Remove(info.UserID);
         }
 
         public static void SerializeInfo(object? root, string filePath, bool tc = false)
