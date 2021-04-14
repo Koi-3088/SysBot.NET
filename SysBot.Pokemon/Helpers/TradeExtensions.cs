@@ -553,7 +553,7 @@ namespace SysBot.Pokemon
             return user ?? new() { UserID = id };
         }
 
-        public static async Task UpdateUserInfo(TCUserInfoRoot.TCUserInfo info)
+        public static async Task UpdateUserInfo(TCUserInfoRoot.TCUserInfo info, bool remove = true)
         {
             while (TCRWLockEnable)
                 await Task.Delay(0_100).ConfigureAwait(false);
@@ -561,7 +561,8 @@ namespace SysBot.Pokemon
             UserInfo.Users.RemoveWhere(x => x.UserID == info.UserID);
             UserInfo.Users.Add(info);
             NewUserLockNoCD = false;
-            CommandInProgress.RemoveAll(x => x == info.UserID);
+            if (remove)
+                CommandInProgress.RemoveAll(x => x == info.UserID);
         }
 
         public static void SerializeInfo(object? root, string filePath, bool tc = false)

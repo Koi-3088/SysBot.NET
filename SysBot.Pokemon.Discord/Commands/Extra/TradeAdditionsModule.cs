@@ -732,8 +732,6 @@ namespace SysBot.Pokemon.Discord
                     return false;
                 }
 
-                TCInfo.Catches.Remove(match);
-                await TradeExtensions.UpdateUserInfo(TCInfo).ConfigureAwait(false);
                 var mentionedUser = Context.Message.MentionedUsers.First().Id;
                 while (TradeExtensions.CommandInProgress.Contains(mentionedUser))
                     await Task.Delay(0_100).ConfigureAwait(false);
@@ -751,7 +749,9 @@ namespace SysBot.Pokemon.Discord
                 var value = $"You gifted your {(match.Shiny ? "★" : "")}{match.Species}{match.Form} to {Context.Message.MentionedUsers.First().Username}. New ID is {newID}.";
 
                 receivingUser.Catches.Add(new() { Ball = match.Ball, Egg = match.Egg, Form = match.Form, ID = newID, Shiny = match.Shiny, Species = match.Species, Path = newPath, Traded = false });
-                await TradeExtensions.UpdateUserInfo(receivingUser).ConfigureAwait(false);
+                await TradeExtensions.UpdateUserInfo(receivingUser, false).ConfigureAwait(false);
+                TCInfo.Catches.Remove(match);
+                await TradeExtensions.UpdateUserInfo(TCInfo).ConfigureAwait(false);
                 await EmbedUtil(embed, name, value).ConfigureAwait(false);
                 return true;
             }
@@ -918,25 +918,25 @@ namespace SysBot.Pokemon.Discord
             await ListUtil(name, value).ConfigureAwait(false);
         }
 
-        private void TradeCordDump(string subfolder, PKM pkm, out int index)
+        private void TradeCordDump(string subfolder, PK8 pk, out int index)
         {
             var dir = Path.Combine("TradeCord", subfolder);
             Directory.CreateDirectory(dir);
-            var speciesName = SpeciesName.GetSpeciesNameGeneration(pkm.Species, 2, 8);
-            var form = TradeExtensions.FormOutput(pkm.Species, pkm.Form, out _);
+            var speciesName = SpeciesName.GetSpeciesNameGeneration(pk.Species, 2, 8);
+            var form = TradeExtensions.FormOutput(pk.Species, pk.Form, out _);
             if (speciesName.Contains("Nidoran"))
             {
                 speciesName = speciesName.Remove(speciesName.Length - 1);
-                form = pkm.Species == (int)Species.NidoranF ? "-F" : "-M";
+                form = pk.Species == (int)Species.NidoranF ? "-F" : "-M";
             }
 
-            var array = Directory.GetFiles(dir).Where(x => x.Contains(".pk8")).Select(x => int.Parse(x.Split('\\')[2].Split('-', '_')[0].Replace("★", "").Trim())).ToArray();
+            var array = Directory.GetFiles(dir).Where(x => x.Contains(".pk")).Select(x => int.Parse(x.Split('\\')[2].Split('-', '_')[0].Replace("★", "").Trim())).ToArray();
             array = array.OrderBy(x => x).ToArray();
             index = Indexing(array);
-            var newname = (pkm.IsShiny ? "★" + index.ToString() : index.ToString()) + $"_{(Ball)pkm.Ball}" + " - " + speciesName + form + $"{(pkm.IsEgg ? " (Egg)" : "")}" + ".pk8";
+            var newname = (pk.IsShiny ? "★" + index.ToString() : index.ToString()) + $"_{(Ball)pk.Ball}" + " - " + speciesName + form + $"{(pk.IsEgg ? " (Egg)" : "")}" + ".pk8";
             var fn = Path.Combine(dir, Util.CleanFileName(newname));
-            File.WriteAllBytes(fn, pkm.DecryptedPartyData);
-            TCInfo.Catches.Add(new() { Species = speciesName, Ball = ((Ball)pkm.Ball).ToString(), Egg = pkm.IsEgg, Form = form, ID = index, Path = fn, Shiny = pkm.IsShiny, Traded = false });
+            File.WriteAllBytes(fn, pk.DecryptedPartyData);
+            TCInfo.Catches.Add(new() { Species = speciesName, Ball = ((Ball)pk.Ball).ToString(), Egg = pk.IsEgg, Form = form, ID = index, Path = fn, Shiny = pk.IsShiny, Traded = false });
         }
 
         private int Indexing(int[] array)
