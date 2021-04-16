@@ -17,8 +17,9 @@ namespace SysBot.Pokemon
         public static byte[] Data = new byte[] { };
         public static bool TCInitialized;
         private static bool TCRWLockEnable;
-        private static bool NewUserLockNoCD;
+        private static bool NewUserLock = false;
         public static readonly List<ulong> CommandInProgress = new();
+        private static readonly List<ulong> GiftInProgress = new();
         public static List<string> TradeCordPath = new();
         public static List<string> TradeCordCooldown = new();
         private static readonly string InfoPath = "TradeCord\\UserInfo.json";
@@ -194,58 +195,42 @@ namespace SysBot.Pokemon
 
         public static PKM RngRoutine(PKM pkm, IBattleTemplate template, Shiny shiny)
         {
-            var troublesomeForms = pkm.Species == (int)Species.Giratina || pkm.Species == (int)Species.Silvally || pkm.Species == (int)Species.Genesect || pkm.Species == (int)Species.Articuno || pkm.Species == (int)Species.Zapdos || pkm.Species == (int)Species.Moltres;
-            pkm.Form = pkm.Species == (int)Species.Silvally || pkm.Species == (int)Species.Genesect || pkm.Species == (int)Species.Giratina ? Random.Next(pkm.PersonalInfo.FormCount) : pkm.Form;
+            pkm.Form = pkm.Species == (int)Species.Silvally || pkm.Species == (int)Species.Genesect ? Random.Next(pkm.PersonalInfo.FormCount) : pkm.Form;
             if (pkm.Species == (int)Species.Alcremie)
             {
                 Data = pkm.Data;
                 AlcremieDecoration = (uint)Random.Next(7);
                 pkm = PKMConverter.GetPKMfromBytes(Data) ?? pkm;
             }
-            else if (pkm.Form > 0 && troublesomeForms)
+            else if (pkm.Form > 0 && pkm.Species == (int)Species.Silvally || pkm.Species == (int)Species.Genesect)
             {
                 switch (pkm.Species)
                 {
-                    case 26: pkm.Met_Location = 162; pkm.Met_Level = 25; pkm.EggMetDate = null; pkm.Egg_Day = 0; pkm.Egg_Location = 0; pkm.Egg_Month = 0; pkm.Egg_Year = 0; pkm.EncounterType = 0; break;
-                    case 144: pkm.Met_Location = 208; pkm.SetIsShiny(false); break;
-                    case 145: pkm.Met_Location = 122; pkm.SetIsShiny(false); break;
-                    case 146: pkm.Met_Location = 164; pkm.SetIsShiny(false); break;
-                    case 487: pkm.HeldItem = 112; pkm.RefreshAbility(pkm.AbilityNumber); break;
                     case 649: pkm.HeldItem = GenesectDrives[pkm.Form]; break;
                     case 773: pkm.HeldItem = SilvallyMemory[pkm.Form]; break;
                 };
             }
-            else if (pkm.Form == 0 && troublesomeForms)
-            {
-                switch (pkm.Species)
-                {
-                    case 144: pkm.Met_Location = 244; break;
-                    case 145: pkm.Met_Location = 244; break;
-                    case 146: pkm.Met_Location = 244; break;
-                };
-            }
-
-            if (pkm.IsShiny && pkm.Met_Location == 244)
-                CommonEdits.SetShiny(pkm, Shiny.AlwaysStar);
 
             pkm.Nature = pkm.Species == (int)Species.Toxtricity && pkm.Form > 0 ? LowKey[Random.Next(LowKey.Length)] : pkm.Species == (int)Species.Toxtricity && pkm.Form == 0 ? Amped[Random.Next(Amped.Length)] : pkm.FatefulEncounter ? pkm.Nature : Random.Next(25);
             pkm.StatNature = pkm.Nature;
-            pkm.ClearHyperTraining();
-            pkm.SetSuggestedMoves(false);
-            pkm.RelearnMoves = (int[])pkm.GetSuggestedRelearnMoves();
             pkm.Move1_PPUps = pkm.Move2_PPUps = pkm.Move3_PPUps = pkm.Move4_PPUps = 0;
             pkm.SetMaximumPPCurrent(pkm.Moves);
-            pkm.FixMoves();
             pkm.ClearHyperTraining();
 
             var la = new LegalityAnalysis(pkm);
             var enc = la.Info.EncounterMatch;
-            var haRng = Random.Next(4) >= 2 ? 2 : 0;
-            if (!GalarFossils.Contains(pkm.Species) && !pkm.FatefulEncounter)
-                pkm.SetAbilityIndex(Legends.Contains(pkm.Species) ? 0 : enc.Version < GameVersion.US ? haRng : enc is EncounterStatic8N && enc.LevelMin < 35 ? Random.Next(2) : Random.Next(3));
+            if (!GalarFossils.Contains(pkm.Species) && pkm.Species != 487 && !pkm.FatefulEncounter && la.Valid)
+            {
+                while (true)
+                {
+                    pkm.SetAbilityIndex(Random.Next(3));
+                    if (new LegalityAnalysis(pkm).Valid)
+                        break;
+                }
+            }
 
             bool goMew = pkm.Species == (int)Species.Mew && enc.Version == GameVersion.GO && pkm.IsShiny;
-            pkm.IVs = goMew ? pkm.IVs : pkm.FatefulEncounter ? pkm.IVs : enc is EncounterStatic8N && enc.LevelMin >= 35 ? pkm.SetRandomIVs(5) : enc is EncounterSlot8 || enc is EncounterStatic8U ? pkm.SetRandomIVs(4) : enc is EncounterSlot8GO || enc is EncounterSlot7GO ? pkm.SetRandomIVsGO() : pkm.SetRandomIVs(3);
+            pkm.IVs = goMew || pkm.FatefulEncounter ? pkm.IVs : enc.Version == GameVersion.GO ? pkm.SetRandomIVsGO() : enc is EncounterStatic8N && enc.LevelMin >= 35 ? pkm.SetRandomIVs(5) : enc is EncounterSlot8 || enc is EncounterStatic8U ? pkm.SetRandomIVs(4) : pkm.SetRandomIVs(3);
             if (enc is EncounterStatic8)
             {
                 while (!new LegalityAnalysis(pkm).Valid)
@@ -258,8 +243,10 @@ namespace SysBot.Pokemon
                 }
             }
 
-            if (!LegalEdits.ValidBall(pkm) || (pkm.Species == (int)Species.Mew && enc.Version != GameVersion.GO))
-                BallApplicator.ApplyBallLegalRandom(pkm);
+            var ballRng = Random.Next(3);
+            if (ballRng == 2)
+                BallApplicator.ApplyBallLegalByColor(pkm);
+            else BallApplicator.ApplyBallLegalRandom(pkm);
 
             pkm = TrashBytes(pkm);
             return pkm;
@@ -338,7 +325,7 @@ namespace SysBot.Pokemon
             pkm.IVs = new int[] { 31, nickname.Contains(dittoStats[0]) ? 0 : 31, 31, nickname.Contains(dittoStats[1]) ? 0 : 31, nickname.Contains(dittoStats[2]) ? 0 : 31, 31 };
             pkm.ClearHyperTraining();
             pkm.ClearNickname();
-            _ = TrashBytes(pkm);
+            _ = TrashBytes(pkm, new LegalityAnalysis(pkm));
         }
 
         public static void EggTrade(PK8 pk)
@@ -470,9 +457,7 @@ namespace SysBot.Pokemon
             pkm.IsNicknamed = true;
             if (pkm.Version != (int)GameVersion.GO && !pkm.FatefulEncounter)
                 pkm.MetDate = DateTime.Parse("2020/10/20");
-            if (la != null)
-                pkm.SetDefaultNickname(la);
-            else pkm.ClearNickname();
+            pkm.SetDefaultNickname(la ?? new LegalityAnalysis(pkm));
             return pkm;
         }
 
@@ -527,9 +512,7 @@ namespace SysBot.Pokemon
             }
         }
 
-        private static void AddNewUser(ulong id) => UserInfo.Users.Add(new TCUserInfoRoot.TCUserInfo { UserID = id });
-
-        public static async Task<TCUserInfoRoot.TCUserInfo> GetUserInfo(ulong id, int cd, int interval = 0, bool gift = false)
+        public static async Task<TCUserInfoRoot.TCUserInfo> GetUserInfo(ulong id, int interval = 0, bool gift = false)
         {
             if (!TCInitialized)
             {
@@ -539,30 +522,34 @@ namespace SysBot.Pokemon
 
             if (!gift)
                 CommandInProgress.Add(id);
+            else if (gift)
+                GiftInProgress.Add(id);
 
-            while (TCRWLockEnable || NewUserLockNoCD || (CommandInProgress.Count >= 1 && !CommandInProgress.Contains(id) && !gift))
+            while (TCRWLockEnable || NewUserLock || GiftInProgress.Contains(id) && !gift || CommandInProgress.FindAll(x => x == id).Count > 1 && !gift)
                 await Task.Delay(0_100).ConfigureAwait(false);
 
             var user = UserInfo.Users.FirstOrDefault(x => x.UserID == id);
             if (user == null)
             {
-                if (user == null && cd == 0)
-                    NewUserLockNoCD = true;
-                AddNewUser(id);
+                NewUserLock = true;
+                user = new TCUserInfoRoot.TCUserInfo { UserID = id };
+                await UpdateUserInfo(user).ConfigureAwait(false);
             }
-            return user ?? new() { UserID = id };
+            return user;
         }
 
-        public static async Task UpdateUserInfo(TCUserInfoRoot.TCUserInfo info, bool remove = true)
+        public static async Task UpdateUserInfo(TCUserInfoRoot.TCUserInfo info, bool remove = true, bool gift = false)
         {
             while (TCRWLockEnable)
                 await Task.Delay(0_100).ConfigureAwait(false);
 
             UserInfo.Users.RemoveWhere(x => x.UserID == info.UserID);
             UserInfo.Users.Add(info);
-            NewUserLockNoCD = false;
+            NewUserLock = false;
             if (remove)
                 CommandInProgress.RemoveAll(x => x == info.UserID);
+            if (gift)
+                GiftInProgress.Remove(info.UserID);
         }
 
         public static void SerializeInfo(object? root, string filePath, bool tc = false)

@@ -296,6 +296,14 @@ namespace SysBot.Pokemon
                 var laInit = new LegalityAnalysis(clone);
                 if (!laInit.Valid || adOT)
                 {
+                    if (!laInit.Valid)
+                    {
+                        Log($"FixOT request has detected an invalid Pokémon from {poke.Trainer.TrainerName}: {(Species)clone.Species}");
+                        poke.SendNotification(this, $"```fix\nShown Pokémon is invalid. Attempting to regenerate... \n{laInit.Report()}```");
+                        if (DumpSetting.Dump)
+                            DumpPokemon(DumpSetting.DumpFolder, "hacked", clone);
+                    }
+
                     if (clone.FatefulEncounter)
                     {
                         clone.SetDefaultNickname(laInit);
@@ -309,11 +317,6 @@ namespace SysBot.Pokemon
 
                     if (!laInit.Valid)
                     {
-                        Log($"FixOT request has detected an invalid Pokémon from {poke.Trainer.TrainerName}: {(Species)clone.Species}");
-                        poke.SendNotification(this, $"```fix\nShown Pokémon is invalid. Attempting to regenerate... \n{laInit.Report()}```");
-                        if (DumpSetting.Dump)
-                            DumpPokemon(DumpSetting.DumpFolder, "hacked", clone);
-
                         var laRegen = new LegalityAnalysis(clone);
                         if (laRegen.Valid)
                             poke.SendNotification(this, $"```fix\nRegenerated and legalized your {(Species)clone.Species}!```");

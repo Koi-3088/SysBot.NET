@@ -733,10 +733,7 @@ namespace SysBot.Pokemon.Discord
                 }
 
                 var mentionedUser = Context.Message.MentionedUsers.First().Id;
-                while (TradeExtensions.CommandInProgress.Contains(mentionedUser))
-                    await Task.Delay(0_100).ConfigureAwait(false);
-
-                var receivingUser = await TradeExtensions.GetUserInfo(mentionedUser, Hub.Config.TradeCord.TradeCordCooldown, 0, true).ConfigureAwait(false);
+                var receivingUser = await TradeExtensions.GetUserInfo(mentionedUser, 0, true).ConfigureAwait(false);
                 HashSet<int> newIDParse = new();
                 foreach (var caught in receivingUser.Catches)
                     newIDParse.Add(caught.ID);
@@ -744,14 +741,14 @@ namespace SysBot.Pokemon.Discord
                 var newID = Indexing(newIDParse.OrderBy(x => x).ToArray());
                 var newPath = $"{dir}\\{match.Path.Split('\\')[2].Replace(match.ID.ToString(), newID.ToString())}";
                 File.Move(match.Path, newPath);
+                receivingUser.Catches.Add(new() { Ball = match.Ball, Egg = match.Egg, Form = match.Form, ID = newID, Shiny = match.Shiny, Species = match.Species, Path = newPath, Traded = false });
+                await TradeExtensions.UpdateUserInfo(receivingUser, false, true).ConfigureAwait(false);
+                TCInfo.Catches.Remove(match);
+                await TradeExtensions.UpdateUserInfo(TCInfo).ConfigureAwait(false);
+
                 var embed = new EmbedBuilder { Color = Color.Purple };
                 var name = $"{Context.User.Username}'s Gift";
                 var value = $"You gifted your {(match.Shiny ? "★" : "")}{match.Species}{match.Form} to {Context.Message.MentionedUsers.First().Username}. New ID is {newID}.";
-
-                receivingUser.Catches.Add(new() { Ball = match.Ball, Egg = match.Egg, Form = match.Form, ID = newID, Shiny = match.Shiny, Species = match.Species, Path = newPath, Traded = false });
-                await TradeExtensions.UpdateUserInfo(receivingUser, false).ConfigureAwait(false);
-                TCInfo.Catches.Remove(match);
-                await TradeExtensions.UpdateUserInfo(TCInfo).ConfigureAwait(false);
                 await EmbedUtil(embed, name, value).ConfigureAwait(false);
                 return true;
             }
@@ -980,7 +977,7 @@ namespace SysBot.Pokemon.Discord
                 Directory.CreateDirectory($"TradeCord\\Backup\\{user}");
             }
 
-            TCInfo = await TradeExtensions.GetUserInfo(Context.User.Id, Hub.Config.TradeCord.TradeCordCooldown, Hub.Config.TradeCord.ConfigUpdateInterval).ConfigureAwait(false);
+            TCInfo = await TradeExtensions.GetUserInfo(Context.User.Id, Hub.Config.TradeCord.ConfigUpdateInterval).ConfigureAwait(false);
             var traded = TCInfo.Catches.ToList().FindAll(x => x.Traded);
             var tradeSignal = TradeExtensions.TradeCordPath.FirstOrDefault(x => x.Contains(TCInfo.UserID.ToString()));
             if (traded.Count != 0 && tradeSignal == default)
@@ -1171,9 +1168,17 @@ namespace SysBot.Pokemon.Discord
             string formHack = string.Empty;
             var formEdgeCaseRng = TradeExtensions.Random.Next(11);
             string[] poipoleRng = { "Poke", "Beast" };
-            string[] mewRng = { ".Version=34", ".Version=3" };
-            int[] ignoreForm = { 382, 383, 487, 646, 649, 716, 717, 773, 778, 800, 845, 875, 877, 888, 889, 890, 893, 898 };
-            string shinyType = TCRng.ShinyRNG >= 100 - Info.Hub.Config.TradeCord.SquareShinyRate ? "\nShiny: Square" : TCRng.ShinyRNG >= 100 - Info.Hub.Config.TradeCord.StarShinyRate ? "\nShiny: Star" : "";
+            string[] mewOverride = { ".Version=34", ".Version=3" };
+            int[] ignoreForm = { 382, 383, 646, 649, 716, 717, 773, 778, 800, 845, 875, 877, 888, 889, 890, 898 };
+            Shiny shiny = TCRng.ShinyRNG >= 100 - Info.Hub.Config.TradeCord.SquareShinyRate ? Shiny.AlwaysSquare : TCRng.ShinyRNG >= 100 - Info.Hub.Config.TradeCord.StarShinyRate ? Shiny.AlwaysStar : Shiny.Never;
+            string shinyType = shiny == Shiny.AlwaysSquare ? "\nShiny: Square" : shiny == Shiny.AlwaysStar ? "\nShiny: Star" : "";
+            string gameVer = TCRng.SpeciesRNG switch
+            {
+                (int)Species.Exeggutor or (int)Species.Marowak => _ = "\n.Version=33",
+                (int)Species.Mew => _ = shinyType != "" ? $"\n{mewOverride[TradeExtensions.Random.Next(2)]}" : "",
+                _ => "",
+            };
+
             if (!ignoreForm.Contains(TCRng.SpeciesRNG))
             {
                 TradeExtensions.FormOutput(TCRng.SpeciesRNG, 0, out string[] forms);
@@ -1185,31 +1190,34 @@ namespace SysBot.Pokemon.Discord
                     (int)Species.Pikachu => _ = formEdgeCaseRng < 5 ? "" : TradeExtensions.PartnerPikachuHeadache[TradeExtensions.Random.Next(TradeExtensions.PartnerPikachuHeadache.Length)],
                     (int)Species.Dracovish or (int)Species.Dracozolt => _ = formEdgeCaseRng < 5 ? "" : "\nAbility: Sand Rush",
                     (int)Species.Arctovish or (int)Species.Arctozolt => _ = formEdgeCaseRng < 5 ? "" : "\nAbility: Slush Rush",
-                    (int)Species.Zygarde => forms[TradeExtensions.Random.Next(forms.Length - 1)],
-                    _ => EventPokeType == "" ? forms[TradeExtensions.Random.Next(forms.Length)] : EventPokeType == "Base" ? "" : forms[int.Parse(EventPokeType)],
+                    (int)Species.Zygarde => "-" + forms[TradeExtensions.Random.Next(forms.Length - 1)],
+                    (int)Species.Giratina => _ = formEdgeCaseRng < 5 ? "" : "-Origin @ Griseous Orb",
+                    _ => EventPokeType == "" ? "-" + forms[TradeExtensions.Random.Next(forms.Length)] : EventPokeType == "Base" ? "" : "-" + forms[int.Parse(EventPokeType)],
                 };
             }
 
+            bool hatchu = TCRng.SpeciesRNG == 25 && formHack != "" && formHack != "-Partner";
             string ballRng = TCRng.SpeciesRNG switch
             {
                 (int)Species.Poipole or (int)Species.Naganadel => $"\nBall: {poipoleRng[TradeExtensions.Random.Next(poipoleRng.Length)]}",
                 (int)Species.Meltan or (int)Species.Melmetal => $"\nBall: {TradeExtensions.LGPEBalls[TradeExtensions.Random.Next(TradeExtensions.LGPEBalls.Length)]}",
                 (int)Species.Dracovish or (int)Species.Dracozolt or (int)Species.Arctovish or (int)Species.Arctozolt => _ = formEdgeCaseRng < 5 ? $"\nBall: Poke" : $"\nBall: {(Ball)TradeExtensions.Random.Next(1, 26)}",
                 (int)Species.Treecko or (int)Species.Torchic or (int)Species.Mudkip => $"\nBall: {(Ball)TradeExtensions.Random.Next(2, 27)}",
-                _ => TradeExtensions.Pokeball.Contains(TCRng.SpeciesRNG) ? $"\nBall: Poke" : $"\nBall: {(Ball)TradeExtensions.Random.Next(1, 27)}",
+                (int)Species.Pikachu => "\nBall: Poke",
+                _ => TradeExtensions.Pokeball.Contains(TCRng.SpeciesRNG) ? "\nBall: Poke" : $"\nBall: {(Ball)TradeExtensions.Random.Next(1, 27)}",
             };
+
             ballRng = ballRng.Contains("Cherish") ? ballRng.Replace("Cherish", "Poke") : ballRng;
-            if (TradeExtensions.ShinyLockCheck(TCRng.SpeciesRNG, ballRng, TCRng.SpeciesRNG == (int)Species.Pikachu ? formHack != "-Partner" && formHack != "" : formHack != "" && formHack != "Normal"))
+            if (TradeExtensions.ShinyLockCheck(TCRng.SpeciesRNG, ballRng, formHack != "") || hatchu)
                 shinyType = "";
 
-            var set = new ShowdownSet($"{speciesName}{(formHack != "" ? $"-{formHack}" : "")}{ballRng}{shinyType}\n{string.Join("\n", trainerInfo)}{(TCRng.SpeciesRNG == 151 && shinyType != "" ? mewRng[TradeExtensions.Random.Next(2)] : "")}");
+            var set = new ShowdownSet($"{speciesName}{formHack}{ballRng}{shinyType}\n{string.Join("\n", trainerInfo)}{gameVer}");
             if (set.CanToggleGigantamax(set.Species, set.Form) && TCRng.GmaxRNG >= 100 - Info.Hub.Config.TradeCord.GmaxRate)
                 set.CanGigantamax = true;
 
             var template = AutoLegalityWrapper.GetTemplate(set);
             var sav = AutoLegalityWrapper.GetTrainerInfo(8);
             TCRng.CatchPKM = (PK8)sav.GetLegal(template, out _);
-            Shiny shiny = TCRng.ShinyRNG >= 100 - Info.Hub.Config.TradeCord.SquareShinyRate ? Shiny.AlwaysSquare : TCRng.ShinyRNG >= 100 - Info.Hub.Config.TradeCord.StarShinyRate ? Shiny.AlwaysStar : Shiny.Never;
             TradeExtensions.RngRoutine(TCRng.CatchPKM, template, shiny);
         }
 
@@ -1350,6 +1358,7 @@ namespace SysBot.Pokemon.Discord
 
             failMsg += DexMsg;
             failMsg += EggEmbedMsg;
+            TradeExtensions.CommandInProgress.RemoveAll(x => x == TCInfo.UserID);
             await EmbedUtil(embedFail, failName, failMsg).ConfigureAwait(false);
         }
 
