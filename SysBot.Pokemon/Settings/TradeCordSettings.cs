@@ -67,5 +67,6 @@ namespace SysBot.Pokemon
         Fairy,
         Legends,
         EventPoke,
+        PikaClones,
     }
 }

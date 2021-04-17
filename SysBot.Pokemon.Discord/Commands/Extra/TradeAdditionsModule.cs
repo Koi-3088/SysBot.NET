@@ -218,7 +218,8 @@ namespace SysBot.Pokemon.Discord
         {
             keyword = keyword.ToLower().Trim();
             language = language.Trim().Substring(0, 1).ToUpper() + language.Trim().Substring(1).ToLower();
-            var set = new ShowdownSet($"{keyword}(Ditto)\nLanguage: {language}\nNature: {nature.Trim()}");
+            nature = nature.Trim().Substring(0, 1).ToUpper() + nature.Trim().Substring(1).ToLower();
+            var set = new ShowdownSet($"{keyword}(Ditto)\nLanguage: {language}\nNature: {nature}");
             var template = AutoLegalityWrapper.GetTemplate(set);
             var sav = AutoLegalityWrapper.GetTrainerInfo(8);
             var pkm = sav.GetLegal(template, out var result);
@@ -742,13 +743,21 @@ namespace SysBot.Pokemon.Discord
                 var newPath = $"{dir}\\{match.Path.Split('\\')[2].Replace(match.ID.ToString(), newID.ToString())}";
                 File.Move(match.Path, newPath);
                 receivingUser.Catches.Add(new() { Ball = match.Ball, Egg = match.Egg, Form = match.Form, ID = newID, Shiny = match.Shiny, Species = match.Species, Path = newPath, Traded = false });
+                var specID = SpeciesName.GetSpeciesID(match.Species);
+                string dexEntry = "";
+                if (receivingUser.DexCompletionCount == 0 && !receivingUser.Dex.Contains(specID))
+                {
+                    receivingUser.Dex.Add(specID);
+                    dexEntry = $"\n{Context.Message.MentionedUsers.First().Username} registered a new entry to the Pokédex!";
+                }
+
                 await TradeExtensions.UpdateUserInfo(receivingUser, false, true).ConfigureAwait(false);
                 TCInfo.Catches.Remove(match);
                 await TradeExtensions.UpdateUserInfo(TCInfo).ConfigureAwait(false);
 
                 var embed = new EmbedBuilder { Color = Color.Purple };
                 var name = $"{Context.User.Username}'s Gift";
-                var value = $"You gifted your {(match.Shiny ? "★" : "")}{match.Species}{match.Form} to {Context.Message.MentionedUsers.First().Username}. New ID is {newID}.";
+                var value = $"You gifted your {(match.Shiny ? "★" : "")}{match.Species}{match.Form} to {Context.Message.MentionedUsers.First().Username}. New ID is {newID}.{dexEntry}";
                 await EmbedUtil(embed, name, value).ConfigureAwait(false);
                 return true;
             }
@@ -1263,7 +1272,7 @@ namespace SysBot.Pokemon.Discord
                 if (Info.Hub.Config.TradeCord.PokeEventType == PokeEventType.EventPoke)
                     MGRngEvent = MysteryGiftRng();
 
-                if (Info.Hub.Config.TradeCord.PokeEventType != PokeEventType.Legends && Info.Hub.Config.TradeCord.PokeEventType != PokeEventType.EventPoke)
+                if (Info.Hub.Config.TradeCord.PokeEventType != PokeEventType.Legends && Info.Hub.Config.TradeCord.PokeEventType != PokeEventType.EventPoke && Info.Hub.Config.TradeCord.PokeEventType != PokeEventType.PikaClones)
                 {
                     var temp = TradeCordPK(TCRng.SpeciesRNG, out _);
                     for (int i = 0; i < temp.PersonalInfo.FormCount; i++)
@@ -1279,6 +1288,7 @@ namespace SysBot.Pokemon.Discord
                 match = Info.Hub.Config.TradeCord.PokeEventType switch
                 {
                     PokeEventType.Legends => TradeExtensions.Legends.Contains(TCRng.SpeciesRNG),
+                    PokeEventType.PikaClones => TradeExtensions.PikaClones.Contains(TCRng.SpeciesRNG),
                     PokeEventType.EventPoke => MGRngEvent != default,
                     _ => type == Info.Hub.Config.TradeCord.PokeEventType.ToString(),
                 };
