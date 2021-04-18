@@ -221,9 +221,20 @@ namespace SysBot.Pokemon
 
             var la = new LegalityAnalysis(pkm);
             var enc = la.Info.EncounterMatch;
+            var evoChain = la.Info.EvoChainsAllGens[pkm.Format].FirstOrDefault(x => x.Species == pkm.Species);
+            pkm.CurrentLevel = enc.LevelMin < evoChain.MinLevel ? evoChain.MinLevel : enc.LevelMin;
+            if (evoChain.RequiresLvlUp && (enc is EncounterStatic8U || enc is EncounterStatic8N) && enc.LevelMin > evoChain.MinLevel)
+                pkm.CurrentLevel += 1;
+
+            pkm.SetSuggestedMoves();
+            pkm.SetRelearnMoves(pkm.GetSuggestedRelearnMoves(enc));
+            pkm.HealPP();
+
             if (!GalarFossils.Contains(pkm.Species) && pkm.Species != 487 && !pkm.FatefulEncounter && la.Valid)
             {
-                while (true)
+                var sw = new Stopwatch();
+                sw.Start();
+                while (sw.ElapsedMilliseconds < 5_000)
                 {
                     pkm.SetAbilityIndex(Random.Next(3));
                     if (new LegalityAnalysis(pkm).Valid)
@@ -235,7 +246,9 @@ namespace SysBot.Pokemon
             pkm.IVs = goMew || pkm.FatefulEncounter ? pkm.IVs : enc.Version == GameVersion.GO ? pkm.SetRandomIVsGO() : enc is EncounterStatic8N && enc.LevelMin >= 35 ? pkm.SetRandomIVs(5) : enc is EncounterSlot8 || enc is EncounterStatic8U ? pkm.SetRandomIVs(4) : pkm.SetRandomIVs(3);
             if (enc is EncounterStatic8)
             {
-                while (!new LegalityAnalysis(pkm).Valid)
+                var sw = new Stopwatch();
+                sw.Start();
+                while (!new LegalityAnalysis(pkm).Valid && sw.ElapsedMilliseconds < 5_000)
                 {
                     if (!SimpleEdits.TryApplyHardcodedSeedWild8((PK8)pkm, enc, pkm.IVs, shiny))
                     {
@@ -249,6 +262,9 @@ namespace SysBot.Pokemon
             if (ballRng == 2)
                 BallApplicator.ApplyBallLegalByColor(pkm);
             else BallApplicator.ApplyBallLegalRandom(pkm);
+
+            if (pkm.Ball == 16)
+                BallApplicator.ApplyBallLegalRandom(pkm);
 
             pkm = TrashBytes(pkm);
             return pkm;
@@ -280,7 +296,6 @@ namespace SysBot.Pokemon
                 "Yamask" => FormOutput(speciesRngID, specificEgg && (pkm1.Species == 867 || pkm2.Species == 867) ? 1 : specificEgg && dittoLoc == 1 ? pkm2.Form : specificEgg && dittoLoc == 2 ? pkm1.Form : Random.Next(forms.Length), out _),
                 "Zigzagoon" => _ = FormOutput(speciesRngID, specificEgg && (pkm1.Species == 862 || pkm2.Species == 862) ? 1 : specificEgg && dittoLoc == 1 ? pkm2.Form : specificEgg && dittoLoc == 2 ? pkm1.Form : Random.Next(forms.Length), out _),
                 "Farfetch’d" => _ = FormOutput(speciesRngID, specificEgg && (pkm1.Species == 865 || pkm2.Species == 865) ? 1 : specificEgg && dittoLoc == 1 ? pkm2.Form : specificEgg && dittoLoc == 2 ? pkm1.Form : Random.Next(forms.Length), out _),
-                //"Slowpoke" => _ = FormOutput(speciesRngID, specificEgg && (pkm1.Species == 80 && pkm1.Form > 0 || pkm2.Species == 80 && pkm2.Form > 0 || pkm1.Species == 199 && pkm1.Form > 0 || pkm2.Species == 199 && pkm2.Form > 0) ? 1 : specificEgg && dittoLoc == 1 ? pkm2.Form : specificEgg && dittoLoc == 2 ? pkm1.Form : Random.Next(forms.Length), out _),
                 "Sinistea" or "Milcery" => "",
                 _ => FormOutput(speciesRngID, specificEgg && pkm1.Form == pkm2.Form ? pkm1.Form : specificEgg && dittoLoc == 1 ? pkm2.Form : specificEgg && dittoLoc == 2 ? pkm1.Form : Random.Next(forms.Length), out _),
             };
@@ -479,6 +494,7 @@ namespace SysBot.Pokemon
                 mgPkm.SetHandlerandMemory(info);
             else return new();
 
+            mgPkm.CurrentLevel = mg.LevelMin;
             var la = new LegalityAnalysis(mgPkm);
             if (!la.Valid)
             {

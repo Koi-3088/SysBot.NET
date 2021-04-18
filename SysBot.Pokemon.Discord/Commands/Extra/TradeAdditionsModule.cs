@@ -1393,12 +1393,12 @@ namespace SysBot.Pokemon.Discord
         {
             var rng = new Random();
             var path = Info.Hub.Config.Trade.MemeFileNames.Split(',');
-            var msg = $"Oops! I wasn't able to create that {GameInfo.Strings.Species[set.Species]}. Here's a meme instead!\n";
             if (path.Length == 0)
                 path = new string[] { "https://i.imgur.com/qaCwr09.png" }; //If memes enabled but none provided, use a default one.
 
             if (invalid || !ItemRestrictions.IsHeldItemAllowed(set.HeldItem, 8) || (set.Nickname.ToLower() == "egg" && !TradeExtensions.ValidEgg.Contains(set.Species)))
             {
+                var msg = $"Oops! I wasn't able to create that {GameInfo.Strings.Species[set.Species]}. Here's a meme instead!\n";
                 await context.Channel.SendMessageAsync($"{(invalid ? msg : "")}{path[rng.Next(path.Length)]}").ConfigureAwait(false);
                 return true;
             }
