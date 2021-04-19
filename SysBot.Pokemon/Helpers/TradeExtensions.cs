@@ -223,7 +223,7 @@ namespace SysBot.Pokemon
             var enc = la.Info.EncounterMatch;
             var evoChain = la.Info.EvoChainsAllGens[pkm.Format].FirstOrDefault(x => x.Species == pkm.Species);
             pkm.CurrentLevel = enc.LevelMin < evoChain.MinLevel ? evoChain.MinLevel : enc.LevelMin;
-            if (evoChain.RequiresLvlUp && (enc is EncounterStatic8U || enc is EncounterStatic8N) && enc.LevelMin > evoChain.MinLevel)
+            while (!new LegalityAnalysis(pkm).Valid && pkm.CurrentLevel <= 100)
                 pkm.CurrentLevel += 1;
 
             pkm.SetSuggestedMoves();
@@ -495,11 +495,15 @@ namespace SysBot.Pokemon
             else return new();
 
             mgPkm.CurrentLevel = mg.LevelMin;
+            if (mg.HeldItem != 0 && ItemRestrictions.IsHeldItemAllowed(mg.HeldItem, 8))
+                mgPkm.HeldItem = mg.HeldItem;
+
             var la = new LegalityAnalysis(mgPkm);
             if (!la.Valid)
             {
                 mgPkm.SetRandomIVs(6);
-                return (PK8)AutoLegalityWrapper.GetLegal(info, new ShowdownSet(ShowdownParsing.GetShowdownText(mgPkm)), out _);
+                var showdown = ShowdownParsing.GetShowdownText(mgPkm);
+                return (PK8)AutoLegalityWrapper.GetLegal(info, new ShowdownSet(showdown), out _);
             }
             else return (PK8)mgPkm;
         }

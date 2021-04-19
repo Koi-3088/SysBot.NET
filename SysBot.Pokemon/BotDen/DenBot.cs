@@ -74,7 +74,7 @@ namespace SysBot.Pokemon
                     DestinationSeed = DenUtil.GetTargetSeed(RaidInfo.Den.Seed, skips);
                     Log($"\nInitial seed: {InitialSeed:X16}.\nDestination seed: {DestinationSeed:X16}.");
                     await PerformDaySkip(skips, token).ConfigureAwait(false);
-                    if (!await SkipCorrection(skips, token).ConfigureAwait(false))
+                    if (!await SkipCorrection(skips - 1, token).ConfigureAwait(false))
                         return;
 
                     EchoUtil.Echo($"{(!Hub.Config.StopConditions.PingOnMatch.Equals(string.Empty) ? $"<@{Hub.Config.StopConditions.PingOnMatch}> " : "")}Skipping complete\n");
@@ -146,7 +146,9 @@ namespace SysBot.Pokemon
 
             if (resetNTP == 1)
             {
-                Log("Syncing time via NTP requires internet connection. Connecting to YComm in order to ensure we do.");
+                if (!await IsGameConnectedToYComm(token).ConfigureAwait(false))
+                    Log("Syncing time via NTP requires internet connection. Connecting to YComm in order to ensure we do.");
+
                 await EnsureConnectedToYComm(Hub.Config, token).ConfigureAwait(false);
                 await ResetNTP(token).ConfigureAwait(false);
             }
