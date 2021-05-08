@@ -19,6 +19,7 @@
         RaidBot,
         EncounterBot,
         DenBot,
+        LairBot,
 
         RemoteControl,
     }

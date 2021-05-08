@@ -25,6 +25,7 @@ namespace SysBot.Base
         }
 
         public Task<byte[]> ReadBytesAsync(uint offset, int length, CancellationToken token) => Task.Run(() => Read(offset, length, Heap.GetReadMethod(false)), token);
+        public Task<byte[]> ReadBytesLargeAsync(uint offset, int length, CancellationToken token) => Task.Run(() => Read(offset, length), token);
         public Task<byte[]> ReadBytesMainAsync(ulong offset, int length, CancellationToken token) => Task.Run(() => Read(offset, length, Main.GetReadMethod(false)), token);
         public Task<byte[]> ReadBytesAbsoluteAsync(ulong offset, int length, CancellationToken token) => Task.Run(() => Read(offset, length, Absolute.GetReadMethod(false)), token);
 
@@ -38,7 +39,7 @@ namespace SysBot.Base
             {
                 Send(SwitchCommand.GetMainNsoBase(false));
                 byte[] baseBytes = ReadResponse(8);
-                Array.Reverse(baseBytes, 0, 8);
+                //Array.Reverse(baseBytes, 0, 8);
                 return BitConverter.ToUInt64(baseBytes, 0);
             }, token);
         }

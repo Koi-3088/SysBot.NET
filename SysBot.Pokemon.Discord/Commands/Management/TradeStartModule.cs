@@ -78,7 +78,7 @@ namespace SysBot.Pokemon.Discord
 
             Action<PokeTradeBot, PokeTradeDetail<PK8>> l = Logger;
             SysCordInstance.Self.Hub.Queues.Forwarders.Add(l);
-            static string GetMessage(PokeRoutineExecutor bot, PokeTradeDetail<PK8> detail) => $"> [{DateTime.Now:hh:mm:ss}] - {bot.Connection.Name} is now trading (ID {detail.ID}) {detail.Trainer.TrainerName}";
+            static string GetMessage(PokeRoutineExecutor bot, PokeTradeDetail<PK8> detail) => $"> [{DateTime.Now:hh:mm:ss}] - {bot.InGameName} is now trading (ID {detail.ID}) {detail.Trainer.TrainerName}";
 
             var entry = new TradeStartAction(cid, l, c.Name);
             Channels.Add(cid, entry);
