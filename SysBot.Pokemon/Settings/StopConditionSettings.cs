@@ -54,7 +54,7 @@ namespace SysBot.Pokemon
             if (settings.TargetNature != Nature.Random && settings.TargetNature != (Nature)pk.Nature)
                 return false;
 
-            if (settings.MarkOnly && !HasMark(pk))
+            if (settings.MarkOnly && !HasMark(pk, out _))
                 return false;
 
             if (settings.ShinyTarget != TargetShinyType.DisableOption)

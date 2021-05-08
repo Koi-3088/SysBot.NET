@@ -20,7 +20,8 @@ namespace SysBot.Pokemon
         private readonly PokeTradeHub<PK8> Hub;
         private readonly LairSettings Settings;
         private readonly IDumper DumpSetting;
-        private readonly int[] DesiredIVs;
+        private readonly int[] DesiredMinIVs;
+        private readonly int[] DesiredMaxIVs;
         private byte[] OtherItemsPouch = { 0 };
         private byte[] BallPouch = { 0 };
         private ulong MainNsoBase;
@@ -37,7 +38,7 @@ namespace SysBot.Pokemon
             Counts = Hub.Counts;
             Settings = hub.Config.Lair;
             DumpSetting = Hub.Config.Folder;
-            DesiredIVs = StopConditionSettings.InitializeTargetIVs(Hub);
+            StopConditionSettings.InitializeTargetIVs(Hub, out DesiredMinIVs, out DesiredMaxIVs);
         }
 
         public override async Task MainLoop(CancellationToken token)
@@ -337,7 +338,7 @@ namespace SysBot.Pokemon
                     var caughtLegend = (!Settings.CatchLairPokémon && pk.IsShiny) || (Settings.CatchLairPokémon && index == 3 && pk.IsShiny);
                     var caughtRegular = Settings.CatchLairPokémon && pk.IsShiny && index != 3;
                     legendSpecies = caughtLegend ? pk.Species : 0;
-                    if (caughtLegend && StopConditionSettings.EncounterFound(pk, DesiredIVs, NewSCSettings) && Settings.UseStopConditionsPathReset)
+                    if (caughtLegend && StopConditionSettings.EncounterFound(pk, DesiredMinIVs, DesiredMaxIVs, NewSCSettings) && Settings.UseStopConditionsPathReset)
                         stopCond = true;
 
                     if (stopCond || (caughtLegend && Settings.StopOnLegendary))
@@ -419,7 +420,7 @@ namespace SysBot.Pokemon
             resetCount++;
             TradeExtensions.EncounterLogs(pk);
             Log($"Reset #{resetCount} {Environment.NewLine}{ShowdownParsing.GetShowdownText(pk)}{Environment.NewLine}");
-            if (!StopConditionSettings.EncounterFound(pk, DesiredIVs, NewSCSettings))
+            if (!StopConditionSettings.EncounterFound(pk, DesiredMinIVs, DesiredMaxIVs, NewSCSettings))
             {
                 Log("No match found, restarting the game...");
                 await GameRestart(token).ConfigureAwait(false);

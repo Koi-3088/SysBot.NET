@@ -32,6 +32,7 @@ namespace SysBot.Pokemon
         private bool hardLock = false;
         private int airplaneLobbyExitCount;
         private int RaidLogCount;
+        private int DenID = -1;
 
         public override async Task MainLoop(CancellationToken token)
         {
@@ -83,14 +84,14 @@ namespace SysBot.Pokemon
                 }
 
                 int code = Settings.GetRandomRaidCode();
-                if (Hub.Config.Raid.AutoRoll && !softLock && !hardLock)
+                if (Settings.AutoRollSettings.AutoRoll && !softLock && !hardLock)
                     await AutoRollDen(code, token).ConfigureAwait(false);
                 else await HostRaidAsync(code, token).ConfigureAwait(false);
 
                 Log($"Raid host {encounterCount} finished.");
                 Counts.AddCompletedRaids();
 
-                if (airplaneUsable && (!Settings.AutoRoll || softLock || hardLock))
+                if (airplaneUsable && (!Settings.AutoRollSettings.AutoRoll || softLock || hardLock))
                     await ResetGameAirplaneAsync(token).ConfigureAwait(false);
                 else await ResetGameAsync(token).ConfigureAwait(false);
             }
@@ -241,7 +242,7 @@ namespace SysBot.Pokemon
             await StartGame(Hub.Config, token).ConfigureAwait(false);
             await CheckIfDayRolled(token).ConfigureAwait(false);
 
-            if (Hub.Config.Raid.AutoRoll)
+            if (Settings.AutoRollSettings.AutoRoll)
                 return;
 
             await EnsureConnectedToYComm(Hub.Config, token).ConfigureAwait(false);
@@ -366,7 +367,7 @@ namespace SysBot.Pokemon
             for (int i = 0; i < 4; i++)
             {
                 await DaySkip(4, 0, token).ConfigureAwait(false);
-                await Task.Delay(0_500 + Settings.DateAdvanceDelay).ConfigureAwait(false);
+                await Task.Delay(0_500 + Settings.AutoRollSettings.DateAdvanceDelay).ConfigureAwait(false);
                 if (i > 0)
                     Log($"Roll {i}...");
             }
@@ -489,7 +490,7 @@ namespace SysBot.Pokemon
 
         private async Task CheckIfDayRolled(CancellationToken token)
         {
-            var denData = await Connection.ReadBytesAsync(DenUtil.GetDenOffset(Hub), 0x18, token).ConfigureAwait(false);
+            var denData = await Connection.ReadBytesAsync(DenUtil.GetDenOffset(Settings.AutoRollSettings.DenID, Settings.AutoRollSettings.DenType, out _), 0x18, token).ConfigureAwait(false);
             var den = new RaidSpawnDetail(denData, 0);
             if (!den.WattsHarvested)
             {
@@ -538,33 +539,56 @@ namespace SysBot.Pokemon
 
             await Click(HOME, 1_000, token).ConfigureAwait(false); // Back to title screen
             if (!gameClosed)
-                await Click(HOME, 2_000, token).ConfigureAwait(false); // Back to game
+                await Click(A, 2_000, token).ConfigureAwait(false); // Back to game
         }
 
         private async Task CheckDen(CancellationToken token)
         {
-            if (RaidInfo.Settings == default)
-                RaidInfo.Settings = Hub.Config.Den;
-
-            var denData = await Connection.ReadBytesAsync(DenUtil.GetDenOffset(Hub), 0x18, token).ConfigureAwait(false);
-            RaidInfo.Den = new RaidSpawnDetail(denData, 0);
             Species species;
             bool gmax;
-            if (RaidInfo.Den.IsEvent)
+            var ofs = DenUtil.GetDenOffset(Settings.AutoRollSettings.DenID, Settings.AutoRollSettings.DenType, out uint denID);
+            RaidInfo.DenID = DenID != denID ? denID : (uint)DenID;
+            var denData = await Connection.ReadBytesAsync(ofs, 0x18, token).ConfigureAwait(false);
+            RaidInfo.Den = new RaidSpawnDetail(denData, 0);
+
+            bool renew;
+            try
             {
-                RaidInfo.RaidDistributionEncounter = DenUtil.GetSpawnEvent(RaidInfo, out _);
-                species = (Species)RaidInfo.RaidDistributionEncounter.Species;
-                gmax = RaidInfo.RaidDistributionEncounter.IsGigantamax;
+                if (RaidInfo.Den.IsEvent)
+                    renew = RaidInfo.RaidDistributionEncounterTable.EntriesLength == 0 || denID != DenID;
+                else renew = RaidInfo.RaidEncounterTable.EntriesLength == 0 || denID != DenID;
             }
-            else
+            catch (NullReferenceException)
             {
-                RaidInfo.RaidEncounter = DenUtil.GetSpawn(RaidInfo, out _);
-                species = (Species)RaidInfo.RaidEncounter.Species;
-                gmax = RaidInfo.RaidEncounter.IsGigantamax;
+                renew = true;
             }
 
-            softLock = Settings.GmaxLock == gmax && species == Settings.SoftLockSpecies && Config.Connection.Protocol == SwitchProtocol.USB && Settings.AirplaneQuitout && Settings.HardLockSpecies == Species.None;
-            hardLock = Settings.GmaxLock == gmax && species == Settings.HardLockSpecies && Settings.SoftLockSpecies == Species.None;
+            if (renew && RaidInfo.Den.IsEvent)
+            {
+                byte[] eventData;
+                var eventOfs = DenUtil.GetEventDenOffset((int)Hub.Config.ConsoleLanguage, RaidInfo.DenID, Settings.AutoRollSettings.DenType, out _);
+                if (Connection.Name.Contains("USB"))
+                    eventData = await SwitchConnection.ReadBytesLargeAsync(eventOfs, 0x23D4, token).ConfigureAwait(false);
+                else eventData = await Connection.ReadBytesAsync(eventOfs, 0x23D4, token).ConfigureAwait(false);
+
+                RaidInfo.RaidDistributionEncounter = DenUtil.GetSpawnEvent(RaidInfo, eventData, out FlatbuffersResource.NestHoleDistributionEncounter8Table table);
+                RaidInfo.RaidDistributionEncounterTable = table;
+            }
+            else if (renew && !RaidInfo.Den.IsEvent)
+            {
+                RaidInfo.RaidEncounter = DenUtil.GetSpawn(RaidInfo, out FlatbuffersResource.EncounterNest8Table table);
+                RaidInfo.RaidEncounterTable = table;
+            }
+            else if (!renew && !RaidInfo.Den.IsEvent)
+                RaidInfo.RaidEncounter = DenUtil.GetSpawnShort(RaidInfo);
+            else RaidInfo.RaidDistributionEncounter = DenUtil.GetSpawnEventShort(RaidInfo);
+
+            species = RaidInfo.Den.IsEvent ? (Species)RaidInfo.RaidDistributionEncounter.Species : (Species)RaidInfo.RaidEncounter.Species;
+            gmax = RaidInfo.Den.IsEvent ? RaidInfo.RaidDistributionEncounter.IsGigantamax : RaidInfo.RaidEncounter.IsGigantamax;
+
+            DenID = (int)denID;
+            softLock = Settings.AutoRollSettings.GmaxLock == gmax && species == Settings.AutoRollSettings.SoftLockSpecies && Config.Connection.Protocol == SwitchProtocol.USB && Settings.AirplaneQuitout && Settings.AutoRollSettings.HardLockSpecies == Species.None;
+            hardLock = Settings.AutoRollSettings.GmaxLock == gmax && species == Settings.AutoRollSettings.HardLockSpecies && Settings.AutoRollSettings.SoftLockSpecies == Species.None;
             if (softLock || hardLock)
             {
                 EchoUtil.Echo($"{(softLock ? "Soft" : "Hard")} locking on {(gmax ? species + "-Gmax" : species)}.");

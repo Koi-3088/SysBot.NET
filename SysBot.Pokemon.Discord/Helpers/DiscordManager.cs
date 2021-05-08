@@ -21,6 +21,7 @@ namespace SysBot.Pokemon.Discord
         public readonly SensitiveSet<string> RolesFixOT = new();
         public readonly SensitiveSet<string> RolesTradeCord = new();
         public readonly SensitiveSet<string> RolesGiveaway = new();
+        public readonly SensitiveSet<string> RolesSupportTrade = new();
         public readonly SensitiveSet<string> RolesTrade = new();
         public readonly SensitiveSet<string> RolesSeed = new();
         public readonly SensitiveSet<string> RolesDump = new();
@@ -65,6 +66,7 @@ namespace SysBot.Pokemon.Discord
                 nameof(RolesFixOT) => RolesFixOT,
                 nameof(RolesTradeCord) => RolesTradeCord,
                 nameof(RolesGiveaway) => RolesGiveaway,
+                nameof(RolesSupportTrade) => RolesSupportTrade,
                 nameof(RolesTrade) => RolesTrade,
                 nameof(RolesSeed) => RolesSeed,
                 nameof(RolesDump) => RolesDump,
@@ -88,6 +90,7 @@ namespace SysBot.Pokemon.Discord
             RolesFixOT.Read(cfg.Discord.RoleCanFixOT, z => z);
             RolesTradeCord.Read(cfg.Discord.RoleCanTradeCord, z => z);
             RolesGiveaway.Read(cfg.Discord.RoleCanGiveaway, z => z);
+            RolesSupportTrade.Read(cfg.Discord.RoleCanSupportTrade, z => z);
             RolesTrade.Read(cfg.Discord.RoleCanTrade, z => z);
             RolesSeed.Read(cfg.Discord.RoleCanSeedCheck, z => z);
             RolesDump.Read(cfg.Discord.RoleCanDump, z => z);
@@ -107,6 +110,7 @@ namespace SysBot.Pokemon.Discord
             Config.Discord.RoleCanFixOT = RolesFixOT.Write();
             Config.Discord.RoleCanTradeCord = RolesTradeCord.Write();
             Config.Discord.RoleCanGiveaway = RolesGiveaway.Write();
+            Config.Discord.RoleCanSupportTrade = RolesSupportTrade.Write();
             Config.Discord.RoleCanTrade = RolesTrade.Write();
             Config.Discord.RoleCanSeedCheck = RolesSeed.Write();
             Config.Discord.RoleCanDump = RolesDump.Write();

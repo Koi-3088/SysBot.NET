@@ -1,4 +1,5 @@
 ﻿using PKHeX.Core;
+using System;
 using System.ComponentModel;
 
 namespace SysBot.Pokemon
@@ -59,24 +60,49 @@ namespace SysBot.Pokemon
         [Category(Hosting), Description("If using USB-Botbase, quit out the raid by toggling airplane mode. For regular hosting and soft-lock AutoRoll.")]
         public bool AirplaneQuitout { get; set; } = false;
 
-        [Category(Hosting), Description("When set, the bot will roll species. Don't forget to configure \"DenID\" in \"Den\" settings!")]
-        public bool AutoRoll { get; set; } = false;
-
-        [Category(Hosting), Description("If AutoRoll enabled, specify Pokémon species to stop rolling on and to soft-lock host via airplane mode.")]
-        public Species SoftLockSpecies { get; set; } = Species.None;
-
-        [Category(Hosting), Description("If AutoRoll enabled, will hard-lock on specified species. This will save your game.")]
-        public Species HardLockSpecies { get; set; } = Species.None;
-
-        [Category(Hosting), Description("If AutoRoll and SoftLockSpecies, or HardLockSpecies is enabled, specify whether to lock on a Gmax version of that species.")]
-        public bool GmaxLock { get; set; } = false;
-
-        [Category(Hosting), Description("Additional delay for 3-day roll in milliseconds. Base delay is 500 ms.")]
-        public int DateAdvanceDelay { get; set; } = 0;
-
         /// <summary>
         /// Gets a random trade code based on the range settings.
         /// </summary>
         public int GetRandomRaidCode() => Util.Rand.Next(MinRaidCode, MaxRaidCode + 1);
+
+        [Category(Hosting), Description("Search criteria for target Pokémon."), DesignerSerializationVisibility(DesignerSerializationVisibility.Content)]
+        public AutoRollCategory AutoRollSettings { get; set; } = new();
+
+        [Category(Hosting)]
+        [TypeConverter(typeof(AutoRollCategoryConverter))]
+        public class AutoRollCategory
+        {
+            public override string ToString() => "AutoRoll Settings.";
+
+            [Category(Hosting), Description("When set, the bot will roll species. Don't forget to configure \"DenID\"!")]
+            public bool AutoRoll { get; set; } = false;
+
+            [Category(Hosting), Description("Den ID (1 - 100 if Vanilla, 1 - 90 if IoA, 1 - 86 if CT).")]
+            public uint DenID { get; set; } = 1;
+
+            [Category(Hosting), Description("Select Den Type.")]
+            public DenType DenType { get; set; } = DenType.Vanilla;
+
+            [Category(Hosting), Description("If AutoRoll enabled, specify Pokémon species to stop rolling on and to soft-lock host via airplane mode.")]
+            public Species SoftLockSpecies { get; set; } = Species.None;
+
+            [Category(Hosting), Description("If AutoRoll enabled, will hard-lock on specified species. This will save your game.")]
+            public Species HardLockSpecies { get; set; } = Species.None;
+
+            [Category(Hosting), Description("If AutoRoll and SoftLockSpecies, or HardLockSpecies is enabled, specify whether to lock on a Gmax version of that species.")]
+            public bool GmaxLock { get; set; } = false;
+
+            [Category(Hosting), Description("Additional delay for 3-day roll in milliseconds. Base delay is 500 ms.")]
+            public int DateAdvanceDelay { get; set; } = 0;
+        }
+
+        public class AutoRollCategoryConverter : TypeConverter
+        {
+            public override bool GetPropertiesSupported(ITypeDescriptorContext context) => true;
+
+            public override PropertyDescriptorCollection GetProperties(ITypeDescriptorContext context, object value, Attribute[] attributes) => TypeDescriptor.GetProperties(typeof(AutoRollCategory));
+
+            public override bool CanConvertTo(ITypeDescriptorContext context, Type destinationType) => destinationType != typeof(string) && base.CanConvertTo(context, destinationType);
+        }
     }
 }
