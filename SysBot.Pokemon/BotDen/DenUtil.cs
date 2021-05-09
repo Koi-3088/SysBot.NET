@@ -139,17 +139,14 @@ namespace SysBot.Pokemon
         {
             var splitIV = ivSpread.Split('\n');
             List<string> speciesList = new();
-            if (raidInfo.RaidDistributionEncounterTable.EntriesLength == 0)
-                return string.Empty;
 
-            var distEntries = raidInfo.RaidDistributionEncounterTable;
 #pragma warning disable CS8629 // Nullable value type may be null.
-            for (int i = 0; i < (raidInfo.Den.IsEvent ? distEntries.EntriesLength : raidInfo.RaidEncounterTable.EntriesLength); i++)
+            for (int i = 0; i < (raidInfo.Den.IsEvent ? raidInfo.RaidDistributionEncounterTable.EntriesLength : raidInfo.RaidEncounterTable.EntriesLength); i++)
             {
                 List<uint> probList = new();
                 for (int a = 0; a < 5; a++)
                 {
-                    var prob = raidInfo.Den.IsEvent ? distEntries.Entries(i).Value.Probabilities(a) : raidInfo.RaidEncounterTable.Entries(i).Value.Probabilities(a);
+                    var prob = raidInfo.Den.IsEvent ? raidInfo.RaidDistributionEncounterTable.Entries(i).Value.Probabilities(a) : raidInfo.RaidEncounterTable.Entries(i).Value.Probabilities(a);
                     probList.Add(prob);
                 }
 
@@ -166,13 +163,13 @@ namespace SysBot.Pokemon
                     continue;
 
                 var rng = new Xoroshiro128Plus(seed);
-                var gmax = raidInfo.Den.IsEvent ? distEntries.Entries(i).Value.IsGigantamax : raidInfo.RaidEncounterTable.Entries(i).Value.IsGigantamax;
-                var speciesID = (int)(raidInfo.Den.IsEvent ? distEntries.Entries(i).Value.Species : raidInfo.RaidEncounterTable.Entries(i).Value.Species);
-                var form = (int)(raidInfo.Den.IsEvent ? distEntries.Entries(i).Value.AltForm : raidInfo.RaidEncounterTable.Entries(i).Value.AltForm);
+                var gmax = raidInfo.Den.IsEvent ? raidInfo.RaidDistributionEncounterTable.Entries(i).Value.IsGigantamax : raidInfo.RaidEncounterTable.Entries(i).Value.IsGigantamax;
+                var speciesID = (int)(raidInfo.Den.IsEvent ? raidInfo.RaidDistributionEncounterTable.Entries(i).Value.Species : raidInfo.RaidEncounterTable.Entries(i).Value.Species);
+                var form = (int)(raidInfo.Den.IsEvent ? raidInfo.RaidDistributionEncounterTable.Entries(i).Value.AltForm : raidInfo.RaidEncounterTable.Entries(i).Value.AltForm);
                 var speciesName = SpeciesName.GetSpeciesNameGeneration(speciesID, 2, 8);
                 var pkm = AutoLegalityWrapper.GetTrainerInfo(8).GetLegal(AutoLegalityWrapper.GetTemplate(new ShowdownSet($"{speciesName}{TradeExtensions.FormOutput(speciesID, form, out _)}")), out _);
                 var personal = pkm.PersonalInfo;
-                var IVs = raidInfo.Den.IsEvent ? (uint)distEntries.Entries(i).Value.FlawlessIVs : (uint)raidInfo.RaidEncounterTable.Entries(i).Value.FlawlessIVs;
+                var IVs = raidInfo.Den.IsEvent ? (uint)raidInfo.RaidDistributionEncounterTable.Entries(i).Value.FlawlessIVs : (uint)raidInfo.RaidEncounterTable.Entries(i).Value.FlawlessIVs;
 
                 uint EC = (uint)rng.NextInt(0xFFFFFFFF);
                 uint SIDTID = (uint)rng.NextInt(0xFFFFFFFF);
@@ -182,11 +179,11 @@ namespace SysBot.Pokemon
                 rng = SeedSearchUtil.GetIVs(rng, raidInfo.IVs, IVs, out uint[,] allIVs, out _);
                 var characteristic = SeedSearchUtil.GetCharacteristic(EC, allIVs, IVs - 1, out _);
 
-                var ability = raidInfo.Den.IsEvent ? (uint)distEntries.Entries(i).Value.Ability : (uint)raidInfo.RaidEncounterTable.Entries(i).Value.Ability;
+                var ability = raidInfo.Den.IsEvent ? (uint)raidInfo.RaidDistributionEncounterTable.Entries(i).Value.Ability : (uint)raidInfo.RaidEncounterTable.Entries(i).Value.Ability;
                 rng = SeedSearchUtil.GetAbility(rng, ability, out uint abilityT);
 
                 var ratio = personal.OnlyFemale ? 254 : personal.OnlyMale ? 0 : personal.Genderless ? 255 : personal.Gender;
-                var gender = raidInfo.Den.IsEvent ? (uint)distEntries.Entries(i).Value.Gender : (uint)raidInfo.RaidEncounterTable.Entries(i).Value.Gender;              
+                var gender = raidInfo.Den.IsEvent ? (uint)raidInfo.RaidDistributionEncounterTable.Entries(i).Value.Gender : (uint)raidInfo.RaidEncounterTable.Entries(i).Value.Gender;              
                 rng = SeedSearchUtil.GetGender(rng, (GenderRatio)ratio, gender, out uint genderT);
 
                 SeedSearchUtil.GetNature(rng, (uint)speciesID, (uint)form, out uint natureT);
