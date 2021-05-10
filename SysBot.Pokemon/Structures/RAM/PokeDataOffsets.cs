@@ -70,19 +70,18 @@ namespace SysBot.Pokemon
         // Lair offsets
         public const uint CurrentScreenLairOffset = 0x6B30FAC0;
         public const uint CurrentScreenLairOffset2 = 0x6B582760;
-        public const uint CurrentScreenLairDialogue = 0x6B329771;
+        public const uint LairMiscScreenOffset = 0x6B38B5D0;
+        public const uint LairDialogueOffset = 0x6B38B610;
 
-        public const uint CurrentScreen_LairMenu = 0xFFAC2CC4;
-        public const uint CurrentScreenLairSpecies = 0xFF003E71;
-        public const uint LairCatchScreenBytes = 0xFFB16BB1;
-        public const uint LegendCatchScreenBytes = 0xFF313881;
-        public const uint LairDialogueBytes = 0xFFD7FCFC;
-        public const uint LairBattleMenuBytes = 0xFFFFFFFF;
-        public const uint LairLegendBattleMenuBytes = 0xFF8AB6CC; // 1st offset
-        public const uint LairMovesBytes = 0xDF6C6C6C;
-        public const uint LairMonSelectScreenBytes = 0xD79E2DBB;
-        public const uint LairRewardsScreenBytes = 0xFFAE2FC6;
-        public const uint AdventurePathBytes = 0xFFFFFFFF;
+        public const uint LairMenuBytes = 0xFFAC2CC4; // 1st offset
+        public const uint LairCatchScreenBytes = 0xFBFEFEFE; // MiscScreen
+        public const uint LairDialogueBytes = 0xC8D8DADF; // Dialogue
+        public const uint LairBattleMenuBytes = 0xFFFFFFFF; // 2nd offset
+        public const uint LairMovesBytes = 0xDF6C6C6C; // 2nd offset
+        public const uint LairDmaxMovesBytes = 0xFF5D23EF; // MiscScreen
+        public const uint LairMonSelectScreenBytes = 0xD79E2DBB; // 1st offset
+        public const uint LairRewardsScreenBytes = 0xFFAE2FC6; // 2nd offset
+        public const uint LairAdventurePathBytes = 0xFFFFFFFF; // 1st offset
 
         public const uint AdventureSeedOffset = 0x4514A4B0;
         public const uint ResetLegendFlagOffset = 0x50AD76B8;
