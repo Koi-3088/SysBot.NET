@@ -1210,6 +1210,9 @@ namespace SysBot.Pokemon.Discord
             if (!Hub.Config.Legality.AllowTrainerDataOverride)
                 Hub.Config.Legality.AllowTrainerDataOverride = true;
 
+            if (Hub.Config.TradeCord.ConfigUpdateInterval < 30)
+                Hub.Config.TradeCord.ConfigUpdateInterval = 60;
+
             List<int> rateCheck = new();
             IEnumerable<int> p = new[] { Info.Hub.Config.TradeCord.TradeCordCooldown, Info.Hub.Config.TradeCord.CatchRate, Info.Hub.Config.TradeCord.CherishRate, Info.Hub.Config.TradeCord.EggRate, Info.Hub.Config.TradeCord.GmaxRate, Info.Hub.Config.TradeCord.SquareShinyRate, Info.Hub.Config.TradeCord.StarShinyRate };
             rateCheck.AddRange(p);

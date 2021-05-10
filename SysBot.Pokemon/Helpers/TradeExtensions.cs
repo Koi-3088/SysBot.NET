@@ -128,7 +128,10 @@ namespace SysBot.Pokemon
                 if (sw.ElapsedMilliseconds / 1000 >= interval && !TCRWLockEnable)
                 {
                     if (File.Exists(InfoPath))
-                        File.Copy(InfoPath, "TradeCord\\UserInfo_backup.json", true);
+                    {
+                        if (TestJsonIntegrity())
+                            File.Copy(InfoPath, "TradeCord\\UserInfo_backup.json", true);
+                    }
 
                     SerializeInfo(UserInfo, InfoPath, true);
                     sw.Restart();
@@ -557,9 +560,6 @@ namespace SysBot.Pokemon
 
         public static void SerializeInfo(object? root, string filePath, bool tc = false)
         {
-            while (TCRWLockEnable && tc)
-                Thread.Sleep(0_100);
-
             if (tc)
                 TCRWLockEnable = true;
 
@@ -571,14 +571,14 @@ namespace SysBot.Pokemon
                     using StreamWriter writer = File.CreateText(filePath);
                     serializer.Formatting = Formatting.Indented;
                     serializer.Serialize(writer, root);
+                    writer.Close();
+                    if (TestJsonIntegrity())
+                        break;
                 }
                 catch
                 {
-                    Thread.Sleep(0_100);
+                    Thread.Sleep(0_050);
                 }
-
-                if (TestJsonIntegrity())
-                    break;
             }
 
             if (tc)
