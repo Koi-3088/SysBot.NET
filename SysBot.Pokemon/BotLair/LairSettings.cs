@@ -26,6 +26,9 @@ namespace SysBot.Pokemon
         [Category(Lair), Description("Toggle \"True\" to catch Pokémon. Default is false for speed routes.")]
         public bool CatchLairPokémon { get; set; } = false;
 
+        [Category(Lair), Description("Toggle \"True\" to catch a Lair encounter if it's better than our current Pokémon.")]
+        public bool UpgradePokemon { get; set; } = false;
+
         [Category(Lair), Description("Toggle \"True\" to inject a desired adventure seed.")]
         public bool InjectSeed { get; set; } = false;
 
@@ -40,6 +43,12 @@ namespace SysBot.Pokemon
 
         [Category(Lair), Description("Enter a Discord channel ID(s) to post shiny result embeds to. Feature has to be initialized via \"$lairEmbed\" after every client restart.")]
         public string ResultsEmbedChannels { get; set; } = string.Empty;
+
+        [Category(Lair), Description("Toggle \"True\" to enable OHKO.")]
+        public bool EnableOHKO { get; set; } = false;
+
+        [Category(Lair), Description("If \"OHKO\", \"CatchLairPokemon\", and \"InjectSeed\" are disabled, should we reset to keep the current path?")]
+        public bool KeepPath { get; set; } = false;
 
         [Category(Lair), Description("\"A\" button mash delay in milliseconds. Default is 600ms.")]
         public int MashDelay { get; set; } = 0;

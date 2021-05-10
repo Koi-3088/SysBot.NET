@@ -590,7 +590,7 @@ namespace SysBot.Pokemon
             return address;
         }
 
-        public async Task<PK8?> ReadUntilPresentAbsolute(ulong offset, int waitms, int waitInterval, CancellationToken token, int size = BoxFormatSlotSize) // Need to eliminate duplicate code, currently a hack
+        public async Task<PK8> ReadUntilPresentAbsolute(ulong offset, int waitms, int waitInterval, CancellationToken token, int size = BoxFormatSlotSize) // Need to eliminate duplicate code, currently a hack
         {
             int msWaited = 0;
             while (msWaited < waitms)
@@ -601,7 +601,7 @@ namespace SysBot.Pokemon
                 await Task.Delay(waitInterval, token).ConfigureAwait(false);
                 msWaited += waitInterval;
             }
-            return null;
+            return new PK8();
         }
     }
 }
