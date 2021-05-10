@@ -90,6 +90,7 @@ namespace SysBot.Pokemon
                 (int)ConsoleLanguageParameter.Spanish => 0x2F9EB4E0,
                 (int)ConsoleLanguageParameter.French => 0x2F9EB510,
                 (int)ConsoleLanguageParameter.German => 0x2F9EB5F0,
+                (int)ConsoleLanguageParameter.Dutch => 0x2F9EC4D0,
                 _ => 0x2F9EB320,
             };
         }

@@ -14,7 +14,6 @@ namespace SysBot.Pokemon
     public class TradeExtensions
     {
         public static Random Random = new();
-        public static byte[] Data = new byte[] { };
         public static bool TCInitialized;
         private static bool TCRWLockEnable;
         public static readonly List<ulong> CommandInProgress = new();
@@ -25,8 +24,6 @@ namespace SysBot.Pokemon
         public static TCUserInfoRoot UserInfo = GetRoot<TCUserInfoRoot>(InfoPath);
         public static int XCoordStart = 0;
         public static int YCoordStart = 0;
-
-        public static uint AlcremieDecoration { get => BitConverter.ToUInt32(Data, 0xE4); set => BitConverter.GetBytes(value).CopyTo(Data, 0xE4); }
 
         public static int[] TradeEvo = { (int)Species.Machoke, (int)Species.Haunter, (int)Species.Boldore, (int)Species.Gurdurr, (int)Species.Phantump, (int)Species.Gourgeist };
         public static int[] ShinyLock = { (int)Species.Victini, (int)Species.Keldeo, (int)Species.Volcanion, (int)Species.Cosmog, (int)Species.Cosmoem, (int)Species.Magearna,
@@ -56,27 +53,16 @@ namespace SysBot.Pokemon
 
         public class TCRng
         {
-            private int catchRng = Random.Next(101);
-            private int shinyRng = Random.Next(101);
-            private int eggShinyRng = Random.Next(101);
-            private int eggRng = Random.Next(101);
-            private int gmaxRng = Random.Next(101);
-            private int cherishRng = Random.Next(101);
-            private readonly int speciesBoostRng = Random.Next(101);
-            private int speciesRng = 0;
-            private PK8 catchPKM = new();
-            private PK8 eggPKM = new();
-
-            public int CatchRNG { get => catchRng; set => catchRng = value; }
-            public int ShinyRNG { get => shinyRng; set => shinyRng = value; }
-            public int EggRNG { get => eggRng; set => eggRng = value; }
-            public int EggShinyRNG { get => eggShinyRng; set => eggShinyRng = value; }
-            public int GmaxRNG { get => gmaxRng; set => gmaxRng = value; }
-            public int CherishRNG { get => cherishRng; set => cherishRng = value; }
-            public int SpeciesRNG { get => speciesRng; set => speciesRng = value; }
-            public int SpeciesBoostRNG { get => speciesBoostRng; }
-            public PK8 CatchPKM { get => catchPKM; set => catchPKM = value; }
-            public PK8 EggPKM { get => eggPKM; set => eggPKM = value; }
+            public int CatchRNG { get; set; }
+            public int ShinyRNG { get; set; }
+            public int EggRNG { get; set; }
+            public int EggShinyRNG { get; set; }
+            public int GmaxRNG { get; set; }
+            public int CherishRNG { get; set; }
+            public int SpeciesRNG { get; set; }
+            public int SpeciesBoostRNG { get; set; }
+            public PK8 CatchPKM { get; set; } = new();
+            public PK8 EggPKM { get; set; } = new();
         }
 
         public class TCUserInfoRoot
@@ -167,9 +153,10 @@ namespace SysBot.Pokemon
             pkm.Form = pkm.Species == (int)Species.Silvally || pkm.Species == (int)Species.Genesect ? Random.Next(pkm.PersonalInfo.FormCount) : pkm.Form;
             if (pkm.Species == (int)Species.Alcremie)
             {
-                Data = pkm.Data;
-                AlcremieDecoration = (uint)Random.Next(7);
-                pkm = PKMConverter.GetPKMfromBytes(Data) ?? pkm;
+                var data = pkm.Data;
+                var deco = (uint)Random.Next(7);
+                BitConverter.GetBytes(deco).CopyTo(data, 0xE4);
+                pkm = PKMConverter.GetPKMfromBytes(data) ?? pkm;
             }
             else if (pkm.Form > 0 && pkm.Species == (int)Species.Silvally || pkm.Species == (int)Species.Genesect)
             {
@@ -664,6 +651,22 @@ namespace SysBot.Pokemon
             baseLink[6] = "0000000" + (pkm.Species == (int)Species.Alcremie ? alcremieDeco : 0);
             baseLink[8] = pkm.IsShiny ? "r.png" : "n.png";
             return string.Join("_", baseLink);
+        }
+
+        public static TCRng RandomInit()
+        {
+            var enumVals = (int[])Enum.GetValues(typeof(Gen8Dex));
+            return new TCRng()
+            {
+                CatchRNG = Random.Next(101),
+                ShinyRNG = Random.Next(101),
+                EggRNG = Random.Next(101),
+                EggShinyRNG = Random.Next(101),
+                GmaxRNG = Random.Next(101),
+                CherishRNG = Random.Next(101),
+                SpeciesRNG = enumVals[Random.Next(enumVals.Length)],
+                SpeciesBoostRNG = Random.Next(101),
+            };
         }
     }
 }
