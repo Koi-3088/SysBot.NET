@@ -68,11 +68,8 @@ namespace SysBot.Pokemon
                 var denData = await DenData(RaidInfo.Settings.DenID, RaidInfo.Settings.DenType, token).ConfigureAwait(false);
                 RaidInfo.DenID = DenUtil.GetDenID(RaidInfo.Settings.DenID, RaidInfo.Settings.DenType);
 
-                byte[] eventData;
                 var eventOfs = DenUtil.GetEventDenOffset((int)Hub.Config.ConsoleLanguage, RaidInfo.Settings.DenID, RaidInfo.Settings.DenType, out _);
-                if (Connection.Name.Contains("USB"))
-                    eventData = RaidInfo.Settings.DenBeamType == BeamType.Event ? await SwitchConnection.ReadBytesLargeAsync(eventOfs, 0x23D4, token).ConfigureAwait(false) : new byte[] { };
-                else eventData = RaidInfo.Settings.DenBeamType == BeamType.Event ? await Connection.ReadBytesAsync(eventOfs, 0x23D4, token).ConfigureAwait(false) : new byte[] { };
+                var eventData = RaidInfo.Settings.DenBeamType == BeamType.Event ? await Connection.ReadBytesAsync(eventOfs, 0x23D4, token).ConfigureAwait(false) : new byte[] { };
 
                 RaidInfo = DenUtil.GetRaid(RaidInfo, denData, eventData);
                 Log("Starting main DenBot loop.");

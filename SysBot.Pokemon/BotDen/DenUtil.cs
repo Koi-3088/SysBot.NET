@@ -42,29 +42,6 @@ namespace SysBot.Pokemon
             public uint DenID { get; set; }
         };
 
-        public class NestHoleDistributionEncounterTable
-        {
-            public HashSet<NestHoleDistributionEncounter> Entries { get; set; } = new();
-        }
-
-        public class NestHoleDistributionEncounter
-        {
-            public uint EntryIndex { get; set; }
-            public uint Species { get; set; }
-            public uint AltForm { get; set; }
-            public uint Level { get; set; }
-            public uint DynamaxLevel { get; set; }
-            public uint Ability { get; set; }
-            public bool IsGigantamax { get; set; }
-            public uint[] Probabilities { get; set; } = new uint[] { };
-            public uint Gender { get; set; }
-            public uint FlawlessIVs { get; set; }
-            public uint ShinyLock { get; set; }
-            public uint Nature { get; set; }
-            public uint MinRank { get; set; }
-            public uint MaxRank { get; set; }
-        }
-
         public static uint GetDenOffset(uint id, DenType type, out uint denID)
         {
             denID = GetDenID(id, type);
@@ -335,49 +312,6 @@ namespace SysBot.Pokemon
                 skips++;
             }
             return -1;
-        }
-
-        public static void GenerateJson() // Literally only used for lazy distribution nest updates
-        {
-            var files = Directory.GetFiles(Directory.GetCurrentDirectory(), "nestDist*");
-            foreach (var file in files)
-            {
-                var jsonName = file.Contains("nestDist_sw") ? "NestDistributionEncSW.json" : "NestDistributionEncSH.json";
-                File.Create(jsonName).Close();
-                var text = File.ReadAllText(file).Split('\n');
-                var tables = new NestHoleDistributionEncounterTable();
-                for (int i = 0; i < text.Length; i++)
-                {
-                    if (i == 0)
-                        continue;
-
-                    var entry = text[i].Split('	');
-                    var probSplit = entry[15].Split('|');
-                    var prob = new uint[5];
-                    for (int p = 0; p < probSplit.Length; p++)
-                        prob[p] = uint.Parse(probSplit[p]);
-
-                    tables.Entries.Add(new NestHoleDistributionEncounter()
-                    {
-                        EntryIndex = uint.Parse(entry[0]),
-                        Species = uint.Parse(entry[1]),
-                        AltForm = uint.Parse(entry[2]),
-                        Level = uint.Parse(entry[3]),
-                        DynamaxLevel = uint.Parse(entry[4]),
-                        Ability = uint.Parse(entry[11]),
-                        IsGigantamax = bool.Parse(entry[12]),
-                        Probabilities = prob,
-                        Gender = uint.Parse(entry[16]),
-                        FlawlessIVs = uint.Parse(entry[17]),
-                        ShinyLock = uint.Parse(entry[18]),
-                        Nature = uint.Parse(entry[21]),
-                        MinRank = uint.Parse(entry[37]),
-                        MaxRank = uint.Parse(entry[38])
-                    });
-                }
-                TradeExtensions.SerializeInfo(tables, $"{Directory.GetCurrentDirectory()}//{jsonName}");
-                File.Delete(file);
-            }
         }
 
         public static ulong eventHash = 1721953670860364124u;

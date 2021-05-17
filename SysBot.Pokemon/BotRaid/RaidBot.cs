@@ -565,11 +565,8 @@ namespace SysBot.Pokemon
 
             if (renew && RaidInfo.Den.IsEvent)
             {
-                byte[] eventData;
                 var eventOfs = DenUtil.GetEventDenOffset((int)Hub.Config.ConsoleLanguage, RaidInfo.DenID, Settings.AutoRollSettings.DenType, out _);
-                if (Connection.Name.Contains("USB"))
-                    eventData = await SwitchConnection.ReadBytesLargeAsync(eventOfs, 0x23D4, token).ConfigureAwait(false);
-                else eventData = await Connection.ReadBytesAsync(eventOfs, 0x23D4, token).ConfigureAwait(false);
+                var eventData = await Connection.ReadBytesAsync(eventOfs, 0x23D4, token).ConfigureAwait(false);
 
                 RaidInfo.RaidDistributionEncounter = DenUtil.GetSpawnEvent(RaidInfo, eventData, out FlatbuffersResource.NestHoleDistributionEncounter8Table table);
                 RaidInfo.RaidDistributionEncounterTable = table;
