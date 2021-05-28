@@ -363,13 +363,13 @@ namespace SysBot.Pokemon
 
         private async Task AutoRollDen(int code, CancellationToken token)
         {
-            await Click(B, 1_000, token).ConfigureAwait(false);
-            for (int i = 0; i < 4; i++)
+            for (int i = 1; i < 4; i++)
             {
-                await DaySkip(4, 0, token).ConfigureAwait(false);
-                await Task.Delay(0_500 + Settings.AutoRollSettings.DateAdvanceDelay).ConfigureAwait(false);
-                if (i > 0)
-                    Log($"Roll {i}...");
+                await DaySkip(token).ConfigureAwait(false);
+                await Task.Delay(0_500 + Settings.AutoRollSettings.DateAdvanceDelay, token).ConfigureAwait(false);
+                Log($"Roll {i}...");
+                if (i == 3)
+                    await ResetTime(token).ConfigureAwait(false);
             }
 
             for (int i = 0; i < 2; i++)

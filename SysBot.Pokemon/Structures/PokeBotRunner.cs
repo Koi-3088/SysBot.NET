@@ -97,6 +97,8 @@ namespace SysBot.Pokemon
                 or PokeRoutineType.Clone
                 or PokeRoutineType.Dump
                 or PokeRoutineType.SeedCheck
+                or PokeRoutineType.TradeCord
+                or PokeRoutineType.FixOT
                 => new PokeTradeBot(Hub, cfg),
 
             PokeRoutineType.EggFetch => new EggBot(cfg, Hub),

@@ -218,8 +218,8 @@ namespace SysBot.Pokemon.Discord
         public async Task DittoTrade([Summary("Trade Code")] int code, [Summary("A combination of \"ATK/SPA/SPE\" or \"6IV\"")] string keyword, [Summary("Language")] string language, [Summary("Nature")] string nature)
         {
             keyword = keyword.ToLower().Trim();
-            language = language.Trim().Substring(0, 1).ToUpper() + language.Trim().Substring(1).ToLower();
-            nature = nature.Trim().Substring(0, 1).ToUpper() + nature.Trim().Substring(1).ToLower();
+            language = language.Trim().Substring(0, 1).ToUpper() + language.Trim()[1..].ToLower();
+            nature = nature.Trim().Substring(0, 1).ToUpper() + nature.Trim()[1..].ToLower();
             var set = new ShowdownSet($"{keyword}(Ditto)\nLanguage: {language}\nNature: {nature}");
             var template = AutoLegalityWrapper.GetTemplate(set);
             var sav = AutoLegalityWrapper.GetTrainerInfo(8);
@@ -243,6 +243,58 @@ namespace SysBot.Pokemon.Discord
             await Context.AddToQueueAsync(code, Context.User.Username, sig, (PK8)pkm, PokeRoutineType.LinkTrade, PokeTradeType.SupportTrade).ConfigureAwait(false);
         }
 
+        [Command("screenOff")]
+        [Alias("off")]
+        [Summary("Turn off the console screen for specified bot(s).")]
+        [RequireOwner]
+        public async Task ScreenOff(string addressesCommaSeparated)
+        {
+            var address = addressesCommaSeparated.Replace(" ", "").Split(',');
+            var source = new System.Threading.CancellationTokenSource();
+            var token = source.Token;
+
+            foreach (var adr in address)
+            {
+                var bot = SysCordInstance.Runner.GetBot(adr);
+                if (bot == null)
+                {
+                    await ReplyAsync($"No bot found with the specified address ({adr}).").ConfigureAwait(false);
+                    return;
+                }
+
+                var c = bot.Bot.Connection;
+                bool crlf = bot.Bot.Config.Connection.UseCRLF;
+                await c.SendAsync(Base.SwitchCommand.ScreenOff(crlf), token).ConfigureAwait(false);
+                await ReplyAsync($"Turned screen off for {bot.Bot.Connection.Label}.").ConfigureAwait(false);
+            }
+        }
+
+        [Command("screenOn")]
+        [Alias("on")]
+        [Summary("Turn on the console screen for specified bot(s).")]
+        [RequireOwner]
+        public async Task ScreenOn(string addressesCommaSeparated)
+        {
+            var address = addressesCommaSeparated.Replace(" ", "").Split(',');
+            var source = new System.Threading.CancellationTokenSource();
+            var token = source.Token;
+
+            foreach (var adr in address)
+            {
+                var bot = SysCordInstance.Runner.GetBot(adr);
+                if (bot == null)
+                {
+                    await ReplyAsync($"No bot found with the specified address ({adr}).").ConfigureAwait(false);
+                    return;
+                }
+
+                var c = bot.Bot.Connection;
+                bool crlf = bot.Bot.Config.Connection.UseCRLF;
+                await c.SendAsync(Base.SwitchCommand.ScreenOn(crlf), token).ConfigureAwait(false);
+                await ReplyAsync($"Turned screen on for {bot.Bot.Connection.Label}.").ConfigureAwait(false);
+            }
+        }
+
         [Command("TradeCordCatch")]
         [Alias("k", "catch")]
         [Summary("Catch a random Pokémon.")]
@@ -259,15 +311,28 @@ namespace SysBot.Pokemon.Discord
                 {
                     var embedTime = new EmbedBuilder { Color = Color.DarkBlue };
                     var timeName = $"{Context.User.Username}, you're too quick!";
-                    var timeValue = $"Please try again in {(timeRemaining.TotalSeconds < 1 ? 1 : timeRemaining.TotalSeconds):N0} {(_ = timeRemaining.TotalSeconds > 1 ? "seconds" : "second")}!";
+                    var timeValue = $"Please try again in {(timeRemaining.TotalSeconds < 2 ? 1 : timeRemaining.TotalSeconds):N0} {(_ = timeRemaining.TotalSeconds < 2 ? "second" : "seconds")}!";
                     await EmbedUtil(embedTime, timeName, timeValue).ConfigureAwait(false);
                     return false;
                 }
 
-                PerkBoostApplicator();
                 TradeCordCooldown(userID);
+                if (Info.Hub.Config.TradeCord.TradeCordCooldown > 0)
+                {
+                    if (TradeExtensions.UserCommandTimestamps.ContainsKey(TCInfo.UserID))
+                        TradeExtensions.UserCommandTimestamps[TCInfo.UserID].Add(DateTime.UtcNow);
+                    else TradeExtensions.UserCommandTimestamps.Add(TCInfo.UserID, new List<DateTime> { DateTime.UtcNow });
+
+                    if (TradeExtensions.SelfBotScanner(TCInfo.UserID, Info.Hub.Config.TradeCord.TradeCordCooldown))
+                    {
+                        if (await ReactionVerification().ConfigureAwait(false))
+                            return false;
+                    }
+                }
+
                 DateTime.TryParse(Info.Hub.Config.TradeCord.EventEnd, out DateTime endTime);
                 bool ended = endTime != default && DateTime.Now > endTime;
+                PerkBoostApplicator();
                 bool boostProc = TCInfo.SpeciesBoost != 0 && Rng.SpeciesBoostRNG >= 100 - TCInfo.ActivePerks.FindAll(x => x == DexPerks.SpeciesBoost).Count;
 
                 if (Info.Hub.Config.TradeCord.EnableEvent && !ended)
@@ -307,7 +372,11 @@ namespace SysBot.Pokemon.Discord
                     if (!await CatchHandler(speciesName).ConfigureAwait(false))
                         return false;
                 }
-                else await FailedCatchHandler().ConfigureAwait(false);
+                else
+                {
+                    await FailedCatchHandler().ConfigureAwait(false);
+                    return false;
+                }
 
                 if (egg || Rng.CatchRNG >= 100 - Info.Hub.Config.TradeCord.CatchRate)
                     TradeExtensions.UpdateUserInfo(TCInfo);
@@ -501,7 +570,7 @@ namespace SysBot.Pokemon.Discord
 
                 IEnumerable<TradeExtensions.TCUserInfoRoot.Catch> matches;
                 var list = TCInfo.Catches.ToList();
-                var ballStr = species != "" ? species.Substring(0, 1).ToUpper() + species.Substring(1).ToLower() : "None";
+                var ballStr = species != "" ? species.Substring(0, 1).ToUpper() + species[1..].ToLower() : "None";
                 bool ballRelease = Enum.TryParse(ballStr, out Ball ball);
 
                 if (ballRelease && ball != Ball.None)
@@ -1097,7 +1166,7 @@ namespace SysBot.Pokemon.Discord
 
         [Command("TradeCordCommandClear")]
         [Alias("cc")]
-        [Summary("Clear the mentioned user's command queue.")]
+        [Summary("Clear the mentioned user's command queue and entry in the ignore list.")]
         [RequireSudo]
         public async Task TradeCordCommandClear([Remainder] string _)
         {
@@ -1113,9 +1182,10 @@ namespace SysBot.Pokemon.Discord
             }
 
             var usr = Context.Message.MentionedUsers.First();
-            if (TradeExtensions.CommandInProgress.Remove(usr.Id))
-                await ReplyAsync($"Removed one queued command for {usr.Username}.").ConfigureAwait(false);
-            else await ReplyAsync($"{usr.Username} has no queued commands.").ConfigureAwait(false);
+            bool command = TradeExtensions.CommandInProgress.Remove(usr.Id);
+            bool ignore = TradeExtensions.IgnoreList.Remove(usr.Id);
+            var msg = command || ignore ? $"Removed {(command && ignore ? "a queued command and ignore entry" : command ? "a queued command" : "an ignore entry")} for {usr.Username}." : $"{usr.Username} has no queued commands or ignore entries.";
+            await ReplyAsync(msg).ConfigureAwait(false);
         }
 
         private void TradeCordDump(string subfolder, PK8 pk, out int index)
@@ -1172,18 +1242,23 @@ namespace SysBot.Pokemon.Discord
         {
             if (!Info.Hub.Config.TradeCord.TradeCordChannels.Contains(Context.Channel.Id.ToString()) && !Info.Hub.Config.TradeCord.TradeCordChannels.Equals(""))
             {
-                await ReplyAsync($"You're typing the command in the wrong channel!").ConfigureAwait(false);
+                await ReplyAsync("You're typing the command in the wrong channel!").ConfigureAwait(false);
                 return false;
             }
 
-            var user = Context.User.Id.ToString();
-            if (!Directory.Exists("TradeCord") || !Directory.Exists($"TradeCord\\Backup\\{user}"))
+            var id = Context.User.Id;
+            if (!Directory.Exists("TradeCord") || !Directory.Exists($"TradeCord\\Backup\\{id}"))
             {
-                Directory.CreateDirectory($"TradeCord\\{user}");
-                Directory.CreateDirectory($"TradeCord\\Backup\\{user}");
+                Directory.CreateDirectory($"TradeCord\\{id}");
+                Directory.CreateDirectory($"TradeCord\\Backup\\{id}");
+            }
+            else if (TradeExtensions.IgnoreList.Contains(id))
+            {
+                await ReplyAsync("Command ignored due to suspicion of you running a script. Contact the bot owner if this is a false-positive.").ConfigureAwait(false);
+                return false;
             }
 
-            TCInfo = await TradeExtensions.GetUserInfo(Context.User.Id, Hub.Config.TradeCord.ConfigUpdateInterval).ConfigureAwait(false);
+            TCInfo = await TradeExtensions.GetUserInfo(id, Hub.Config.TradeCord.ConfigUpdateInterval).ConfigureAwait(false);
             var traded = TCInfo.Catches.ToList().FindAll(x => x.Traded);
             var tradeSignal = TradeExtensions.TradeCordPath.FirstOrDefault(x => x.Contains(TCInfo.UserID.ToString()));
             if (traded.Count != 0 && tradeSignal == default)
@@ -1251,7 +1326,7 @@ namespace SysBot.Pokemon.Discord
             if (name == "")
                 return name;
 
-            name = name.Substring(0, 1).ToUpper().Trim() + name.Substring(1).ToLower().Trim();
+            name = name.Substring(0, 1).ToUpper().Trim() + name[1..].ToLower().Trim();
             if (name.Contains("'"))
                 name = name.Replace("'", "’");
 
@@ -1259,15 +1334,15 @@ namespace SysBot.Pokemon.Discord
             {
                 var split = name.Split('-');
                 bool exceptions = split[1] == "z" || split[1] == "m" || split[1] == "f";
-                name = split[0] + "-" + (split[1].Length < 2 && !exceptions ? split[1] : split[1].Substring(0, 1).ToUpper() + split[1].Substring(1).ToLower() + (split.Length > 2 ? "-" + split[2].ToUpper() : ""));
+                name = split[0] + "-" + (split[1].Length < 2 && !exceptions ? split[1] : split[1].Substring(0, 1).ToUpper() + split[1][1..].ToLower() + (split.Length > 2 ? "-" + split[2].ToUpper() : ""));
             }
 
             if (name.Contains(' '))
             {
                 var split = name.Split(' ');
-                name = split[0] + " " + split[1].Substring(0, 1).ToUpper() + split[1].Substring(1).ToLower();
+                name = split[0] + " " + split[1].Substring(0, 1).ToUpper() + split[1][1..].ToLower();
                 if (name.Contains("-"))
-                    name = name.Split('-')[0] + "-" + name.Split('-')[1].Substring(0, 1).ToUpper() + name.Split('-')[1].Substring(1);
+                    name = name.Split('-')[0] + "-" + name.Split('-')[1].Substring(0, 1).ToUpper() + name.Split('-')[1][1..];
             }
 
             return name;
@@ -1371,6 +1446,37 @@ namespace SysBot.Pokemon.Discord
             await msg.RemoveAllReactionsAsync().ConfigureAwait(false);
         }
 
+        private async Task<bool> ReactionVerification()
+        {
+            var sw = new Stopwatch();
+            IEmote[] reaction = { new Emoji("👍") };
+            var msg = await Context.Channel.SendMessageAsync($"{Context.User.Username}, please react to the attached emoji in order to confirm you're not using a script.").ConfigureAwait(false);
+            await msg.AddReactionsAsync(reaction).ConfigureAwait(false);
+            
+            sw.Start();
+            while (sw.ElapsedMilliseconds < 20_000)
+            {
+                await msg.UpdateAsync().ConfigureAwait(false);
+                var react = msg.Reactions.FirstOrDefault(x => x.Value.ReactionCount > 1 && x.Value.IsMe);
+                if (react.Key == default)
+                    continue;
+
+                if (react.Key.Name == reaction[0].Name)
+                {
+                    var reactUsers = await msg.GetReactionUsersAsync(reaction[0], 100).FlattenAsync().ConfigureAwait(false);
+                    var usr = reactUsers.FirstOrDefault(x => x.Id == Context.User.Id && !x.IsBot);
+                    if (usr == default)
+                        continue;
+
+                    await msg.AddReactionAsync(new Emoji("✅")).ConfigureAwait(false);
+                    return false;
+                }
+            }
+            await msg.AddReactionAsync(new Emoji("❌")).ConfigureAwait(false);
+            TradeExtensions.IgnoreList.Add(Context.User.Id);
+            return true;
+        }
+
         private async Task EmbedUtil(EmbedBuilder embed, string name, string value)
         {
             var splitName = name.Split(new string[] { "&^&" }, StringSplitOptions.None);
@@ -1419,6 +1525,7 @@ namespace SysBot.Pokemon.Discord
                     (int)Species.Arctovish or (int)Species.Arctozolt => _ = formEdgeCaseRng < 5 ? "" : "\nAbility: Slush Rush",
                     (int)Species.Zygarde => "-" + forms[TradeExtensions.Random.Next(forms.Length - 1)],
                     (int)Species.Giratina => _ = formEdgeCaseRng < 5 ? "" : "-Origin @ Griseous Orb",
+                    (int)Species.Keldeo => "-Resolute",
                     _ => EventPokeType == "" ? "-" + forms[TradeExtensions.Random.Next(forms.Length)] : EventPokeType == "Base" ? "" : "-" + forms[int.Parse(EventPokeType)],
                 };
             }
@@ -1615,7 +1722,6 @@ namespace SysBot.Pokemon.Discord
                 Footer = footer,
             };
 
-            TradeExtensions.CommandInProgress.Remove(TCInfo.UserID);
             await EmbedUtil(embedFail, failName, failMsg).ConfigureAwait(false);
         }
 
@@ -1636,7 +1742,7 @@ namespace SysBot.Pokemon.Discord
             {
                 info.Dex.Clear();
                 info.DexCompletionCount += 1;
-                DexMsg += info.DexCompletionCount < 30 ? "Level increased!" : "Highest level achieved!";
+                DexMsg += info.DexCompletionCount < 30 ? " Level increased!" : " Highest level achieved!";
             }
         }
 

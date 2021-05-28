@@ -31,7 +31,7 @@ namespace SysBot.Pokemon.Discord
 
         [Command("huntBulk")]
         [Alias("hb")]
-        [Summary("Sets all three Scientist Notes. Enter all three species without spaces or symbols; species separated by spaces.")]
+        [Summary("Sets all three Scientist Notes. Enter all three species without spaces or symbols in their names; species separated by spaces.")]
         [RequireSudo]
         public async Task Hunt([Summary("Sets the Lair Pokémon Species in bulk.")] string species1, string species2, string species3)
         {
@@ -42,35 +42,17 @@ namespace SysBot.Pokemon.Discord
                 if (parse == default)
                 {
                     await ReplyAsync($"{input[i]} is not a valid Lair Species.").ConfigureAwait(false);
-                    LairBotUtil.NoteRequest = new();
                     return;
                 }
 
-                LairBotUtil.NoteRequest.Add(parse);
+                SysCordInstance.Self.Hub.Config.Lair.LairSpeciesQueue[i] = parse;
                 if (i == 2)
                 {
-                    var msg = $"{Context.User.Mention} Lair Species have been set to {string.Join(", ", LairBotUtil.NoteRequest)}.";
+                    LairBot.DiscordQueueOverride = true;
+                    var msg = $"{Context.User.Mention} Lair Species have been set to {string.Join(", ", SysCordInstance.Self.Hub.Config.Lair.LairSpeciesQueue)}.";
                     await ReplyAsync(msg).ConfigureAwait(false);
                 }
             }
-        }
-
-        [Command("stopon")]
-        [Alias("so", "endon")]
-        [Summary("Stops on the specified Pokémon species.")]
-        [RequireSudo]
-        public async Task StopOn([Summary("Sets the Stop Conditions Pokémon Species")] string species)
-        {
-            var parse = EnumParse<Species>(species);
-            if (parse == default)
-            {
-                await ReplyAsync("Not a valid Species. Correct format is, for example, \"$so TapuLele\".").ConfigureAwait(false);
-                return;
-            }
-
-            SysCordInstance.Self.Hub.Config.StopConditions.StopOnSpecies = parse;
-            var msg = $"{Context.User.Mention} Stop Condition has been set to {parse}.";
-            await ReplyAsync(msg).ConfigureAwait(false);
         }
 
         [Command("catchlairmons")]
@@ -153,7 +135,7 @@ namespace SysBot.Pokemon.Discord
             {
                 if (LairBotUtil.EmbedMon.Item1 != null)
                 {
-                    var url = TradeExtensions.PokeImg(LairBotUtil.EmbedMon.Item1, LairBotUtil.EmbedMon.Item1.CanGigantamax, true);
+                    var url = TradeExtensions.PokeImg(LairBotUtil.EmbedMon.Item1, LairBotUtil.EmbedMon.Item1.CanGigantamax, SysCordInstance.Self.Hub.Config.TradeCord.UseFullSizeImages);
                     var ballUrl = $"https://serebii.net/itemdex/sprites/pgl/" + $"{(Ball)LairBotUtil.EmbedMon.Item1.Ball}ball".ToLower() + ".png";
                     var ping = SysCordInstance.Self.Hub.Config.StopConditions.PingOnMatch != string.Empty ? $"<@{SysCordInstance.Self.Hub.Config.StopConditions.PingOnMatch}>" : "";
                     var embed = new EmbedBuilder { Color = Color.Blue, ImageUrl = url, ThumbnailUrl = ballUrl }.AddField(x =>

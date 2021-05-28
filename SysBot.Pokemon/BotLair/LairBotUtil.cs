@@ -10,13 +10,10 @@ namespace SysBot.Pokemon
     public sealed class LairBotUtil
     {
         public static CancellationTokenSource EmbedSource = new();
-        public static List<LairSpecies> NoteRequest = new();
         public static bool EmbedsInitialized;
         public static (PK8?, bool) EmbedMon;
         public static int TerrainDur = -1;
-#pragma warning disable CS8601 // Possible null reference assignment.
-        public static readonly MoveInfo.MoveInfoRoot MoveRoot = LoadMoves();
-#pragma warning restore CS8601 // Possible null reference assignment.
+        public static MoveInfo.MoveInfoRoot MoveRoot = new();
 
         // Copied over from PKHeX due to accessibility
         internal static readonly ushort[] Pouch_Regular_SWSH =
@@ -130,33 +127,33 @@ namespace SysBot.Pokemon
             return selectIndex;
         }
 
-        public static double[] WeightedDamage(PK8[] party, PK8 lairPk, bool dmax)
+        public static double[] WeightedDamage(PK8[] party, PK8 pk, PK8 lairPk, bool dmax)
         {
             if (TerrainDur >= 0)
                 --TerrainDur;
 
-            PK8 pk = party[0];
-            var partyList = party.ToList();
-            partyList.Remove(pk);
-
+            int[] movePP = new int[] { pk.Move1_PP, pk.Move2_PP, pk.Move3_PP, pk.Move4_PP };
             double[] dmgCalc = new double[4];
             int[] types = { lairPk.PersonalInfo.Type1, lairPk.PersonalInfo.Type2 };
             var encAbility = lairPk.Ability;
             var ourAbility = pk.Ability;
+
             for (int i = 0; i < pk.Moves.Length; i++)
             {
                 double typeMultiplier = -1.0;
                 var move = MoveRoot.Moves.FirstOrDefault(x => x.MoveID == pk.Moves[i]);
                 var power = Convert.ToDouble(move.Power);
-                bool waterImmune = move.Type == MoveType.Water && (lairPk.Ability == (int)Ability.DrySkin || lairPk.Ability == (int)Ability.WaterAbsorb || lairPk.Ability == (int)Ability.StormDrain || partyList.Any(x => x.Ability == (int)Ability.StormDrain));
-                bool electricImmune = move.Type == MoveType.Electric && (lairPk.Ability == (int)Ability.VoltAbsorb || lairPk.Ability == (int)Ability.LightningRod || lairPk.Ability == (int)Ability.MotorDrive || partyList.Any(x => x.Ability == (int)Ability.LightningRod));
+                bool waterImmune = move.Type == MoveType.Water && (lairPk.Ability == (int)Ability.DrySkin || lairPk.Ability == (int)Ability.WaterAbsorb || lairPk.Ability == (int)Ability.StormDrain || party.Any(x => x.Ability == (int)Ability.StormDrain));
+                bool electricImmune = move.Type == MoveType.Electric && (lairPk.Ability == (int)Ability.VoltAbsorb || lairPk.Ability == (int)Ability.LightningRod || lairPk.Ability == (int)Ability.MotorDrive || party.Any(x => x.Ability == (int)Ability.LightningRod));
                 bool groundImmune = move.MoveID != (int)Move.ThousandArrows && move.Type == MoveType.Ground && (lairPk.Ability == (int)Ability.Levitate || types[0] == (int)MoveType.Flying || types[1] == (int)MoveType.Flying);
                 bool fireImmune = move.Type == MoveType.Fire && lairPk.Ability == (int)Ability.FlashFire;
                 bool grassImmune = move.Type == MoveType.Grass && lairPk.Ability == (int)Ability.SapSipper;
                 bool ignoreAbility = pk.Ability == (int)Ability.Turboblaze || pk.Ability == (int)Ability.Teravolt || pk.Ability == (int)Ability.MoldBreaker;
 
                 var typeMulti = TypeDamageMultiplier(types, (int)move.Type);
-                if (typeMulti[0] == 0.5 && typeMulti[1] == 0.5 && types[0] != types[1])
+                if (typeMulti[0] == 0.0 || typeMulti[1] == 0.0)
+                    typeMultiplier = 0.0;
+                else if (typeMulti[0] == 0.5 && typeMulti[1] == 0.5 && types[0] != types[1])
                     typeMultiplier = 0.25;
                 else if (typeMulti[0] == 0.5 || typeMulti[1] == 0.5)
                     typeMultiplier = 0.5;
@@ -166,7 +163,6 @@ namespace SysBot.Pokemon
                     typeMultiplier = 4.0;
                 else if (typeMulti[0] == 2.0 || typeMulti[1] == 2.0)
                     typeMultiplier = 2.0;
-                else typeMultiplier = 0;
 
                 if ((!ignoreAbility && (waterImmune || electricImmune || fireImmune || grassImmune || groundImmune)) || move.Category == MoveCategory.Status || (move.MoveID == (int)Move.DreamEater && lairPk.Status_Condition != (int)StatusCondition.Asleep))
                     typeMultiplier = -1.0;
@@ -178,7 +174,7 @@ namespace SysBot.Pokemon
                 };
 
                 double stab = ourAbility == (int)Ability.Adaptability && (pk.PersonalInfo.Type1 == (int)move.Type || pk.PersonalInfo.Type2 == (int)move.Type) ? 2.0 : pk.PersonalInfo.Type1 == (int)move.Type || pk.PersonalInfo.Type2 == (int)move.Type ? 1.5 : 1.0;
-                double multiplier = 1.0;
+                double multiplier = movePP[i] == 0 || (move.MoveID == (int)Move.SteelRoller && TerrainDur == -1) ? -100.0 : 1.0;
                 multiplier *= encAbility switch // Target ability influence
                 {
                     (int)Ability.Fluffy => move.Type == MoveType.Fire && !move.Contact ? 2.0 : 0.5,
@@ -249,7 +245,7 @@ namespace SysBot.Pokemon
                     _ => 1.0,
                 };
 
-                power *= status * (move.Charge || move.Recharge ? 0.5 : 1.0);
+                power *= status * (!dmax && (move.Charge || move.Recharge) ? 0.5 : 1.0);
                 double terrain = 1.0;
                 if (dmax || TerrainDur > 0)
                 {
@@ -270,7 +266,7 @@ namespace SysBot.Pokemon
             return dmgCalc;
         }
 
-        public static MoveInfo.MoveInfoRoot? LoadMoves()
+        public static MoveInfo.MoveInfoRoot LoadMoves()
         {
             using Stream stream = System.Reflection.Assembly.GetExecutingAssembly().GetManifestResourceStream("SysBot.Pokemon.BotLair.MoveInfo.json");
             using TextReader reader = new StreamReader(stream);

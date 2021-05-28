@@ -183,4 +183,10 @@
         MaxStarfall,
         MaxGuard,
     }
+
+    public enum LairBotModes
+    {
+        OffsetLog,
+        LairBot,
+    }
 }

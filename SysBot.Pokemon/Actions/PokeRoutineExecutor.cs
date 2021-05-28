@@ -558,7 +558,9 @@ namespace SysBot.Pokemon
             Log("Game saved!");
         }
 
-        public async Task<bool> LairStatusCheck(uint val, uint ofs, CancellationToken token) => BitConverter.GetBytes(val).SequenceEqual(await Connection.ReadBytesAsync(ofs, 4, token).ConfigureAwait(false));
+        public async Task<bool> LairStatusCheck(ushort val, uint ofs, CancellationToken token) => BitConverter.GetBytes(val).SequenceEqual(await Connection.ReadBytesAsync(ofs, 2, token).ConfigureAwait(false));
+
+        public async Task<bool> LairStatusCheckMain(ushort val, ulong ofs, CancellationToken token) => BitConverter.GetBytes(val).SequenceEqual(await SwitchConnection.ReadBytesAbsoluteAsync(ofs, 2, token).ConfigureAwait(false));
 
         public async Task<ulong> ParsePointer(string pointer, CancellationToken token) //Code from LiveHex
         {

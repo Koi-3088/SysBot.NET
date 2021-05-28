@@ -184,7 +184,7 @@ namespace SysBot.Base
         /// <param name="resetNTP">Should we use NTP to sync back time (1/0 for true/false, about to be deprecated)</param>
         /// <param name="crlf">Line terminator (unused by USB's protocol)</param>
         /// <returns>Encoded command bytes</returns>
-        public static byte[] DaySkip(int resetAfterNSkips, int resetNTP, bool crlf = true) => Encode($"daySkip {resetAfterNSkips} {resetNTP}", crlf);
+        public static byte[] DaySkip(bool crlf = true) => Encode($"daySkip", crlf);
 
         /// <summary>
         /// Sync system network clock with NTP's server.
@@ -192,5 +192,26 @@ namespace SysBot.Base
         /// <param name="crlf">Line terminator (unused by USB's protocol)</param>
         /// <returns>Encoded command bytes</returns>
         public static byte[] ResetTimeNTP(bool crlf = true) => Encode("resetTimeNTP", crlf);
+
+        /// <summary>
+        /// Sync system network clock with the initial day skip's clock.
+        /// </summary>
+        /// <param name="crlf">Line terminator (unused by USB's protocol)</param>
+        /// <returns>Encoded command bytes</returns>
+        public static byte[] ResetTime(bool crlf = true) => Encode("resetTime", crlf);
+
+        /// <summary>
+        /// Turns console screen off.
+        /// </summary>
+        /// <param name="crlf">Line terminator (unused by USB's protocol)</param>
+        /// <returns>Encoded command bytes</returns>
+        public static byte[] ScreenOff(bool crlf = true) => Encode("screenOff", crlf);
+
+        /// <summary>
+        /// Turns console screen on.
+        /// </summary>
+        /// <param name="crlf">Line terminator (unused by USB's protocol)</param>
+        /// <returns>Encoded command bytes</returns>
+        public static byte[] ScreenOn(bool crlf = true) => Encode("screenOn", crlf);
     }
 }

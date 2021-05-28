@@ -96,18 +96,16 @@ namespace SysBot.Pokemon
                     }
                     else
                     {
-                        var seedstr = Settings.SeedToInject.StartsWith("0x") ? Settings.SeedToInject.Substring(2) : Settings.SeedToInject;
+                        var seedstr = Settings.SeedToInject.StartsWith("0x") ? Settings.SeedToInject[2..] : Settings.SeedToInject;
                         Log("Attempting to inject the seed...");
                         denData[0x10] = (byte)Settings.Star;
                         denData[0x11] = (byte)Settings.Randroll;
 
-                        if (ulong.TryParse(seedstr, out ulong seedU))
-                            BitConverter.GetBytes(seedU).CopyTo(denData, 0x8);
-                        else if (ulong.TryParse(seedstr, NumberStyles.HexNumber, CultureInfo.CurrentCulture, out ulong seedH))
+                        if (ulong.TryParse(seedstr, NumberStyles.HexNumber, CultureInfo.CurrentCulture, out ulong seedH))
                             BitConverter.GetBytes(seedH).CopyTo(denData, 0x8);
                         else
                         {
-                            Log("Please enter a valid seed.");
+                            Log("Please enter a seed in hex format.");
                             return false;
                         }
 
@@ -162,8 +160,6 @@ namespace SysBot.Pokemon
             var firstQuarterLog = Math.Round(skips * 0.25, 0, MidpointRounding.ToEven);
             var halfLog = Math.Round(skips * 0.5, 0, MidpointRounding.ToEven);
             var lastQuarterLog = Math.Round(skips * 0.75, 0, MidpointRounding.ToEven);
-            int reset = Settings.TimeReset == TimeReset.Reset ? skips : 0;
-            int resetNTP = Settings.TimeReset == TimeReset.ResetNTP ? 1 : 0;
             EchoUtil.Echo($"Beginning to skip {(skips > 1 ? $"{skips} frames" : "1 frame")}. Skipping should take around {(timeRemaining.Days == 0 ? "" : timeRemaining.Days + "d:")}{(timeRemaining.Hours == 0 ? "" : timeRemaining.Hours + "h:")}{(timeRemaining.Minutes == 0 ? "" : timeRemaining.Minutes + "m:")}{(timeRemaining.Seconds < 1 ? "1s" : timeRemaining.Seconds + "s")}.");
 
             int remaining = await SkipCheck(skips, 0, token).ConfigureAwait(false);
@@ -175,17 +171,19 @@ namespace SysBot.Pokemon
                     Log($"{(remaining > 1 ? $"{remaining} skips" : "1 skip")} and around {(timeRemaining.Days == 0 ? "" : timeRemaining.Days + "d:")}{(timeRemaining.Hours == 0 ? "" : timeRemaining.Hours + "h:")}{(timeRemaining.Minutes == 0 ? "" : timeRemaining.Minutes + "m:")}{(timeRemaining.Seconds < 1 ? "1s" : timeRemaining.Seconds + "s")} left.");
                 }
 
-                await DaySkip(reset, 0, token).ConfigureAwait(false);
+                await DaySkip(token).ConfigureAwait(false);
                 await Task.Delay(0_360 + Settings.SkipDelay).ConfigureAwait(false);
                 --remaining;
                 if (remaining == lastQuarterLog || remaining + 3 == skips)
                     remaining = await SkipCheck(skips, remaining, token).ConfigureAwait(false);
             }
 
-            if (resetNTP == 1)
+            if (Settings.TimeReset == TimeReset.Reset)
+                await ResetTime(token).ConfigureAwait(false);
+            else if (Settings.TimeReset == TimeReset.ResetNTP)
             {
                 if (!await IsGameConnectedToYComm(token).ConfigureAwait(false))
-                    Log("Syncing time via NTP requires internet connection. Connecting to YComm in order to ensure we do.");
+                    Log("Syncing time via NTP requires internet connection. Connecting to YComm in order to ensure we're connected.");
 
                 await EnsureConnectedToYComm(Hub.Config, token).ConfigureAwait(false);
                 await ResetNTP(token).ConfigureAwait(false);
@@ -212,7 +210,7 @@ namespace SysBot.Pokemon
                 }
                 else if (skips < 0)
                 {
-                    Log($"Date must have rolled while skipping. We have overskipped our target.");
+                    Log("Date must have rolled while skipping. We have overskipped our target.");
                     return false;
                 }
                 else return true;

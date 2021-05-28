@@ -16,12 +16,15 @@ namespace SysBot.Pokemon
         public static Random Random = new();
         public static bool TCInitialized;
         private static bool TCRWLockEnable;
+        public static Dictionary<ulong, List<DateTime>> UserCommandTimestamps = new();
         public static readonly List<ulong> CommandInProgress = new();
         private static readonly List<ulong> GiftInProgress = new();
+        public static readonly List<ulong> IgnoreList = new();
         public static List<string> TradeCordPath = new();
         public static HashSet<string> TradeCordCooldown = new();
         private static readonly string InfoPath = "TradeCord\\UserInfo.json";
-        public static TCUserInfoRoot UserInfo = GetRoot<TCUserInfoRoot>(InfoPath);
+        private static readonly string InfoBackupPath = "TradeCord\\UserInfo_backup.json";
+        public static TCUserInfoRoot UserInfo = new();
         public static int XCoordStart = 0;
         public static int YCoordStart = 0;
 
@@ -127,17 +130,39 @@ namespace SysBot.Pokemon
             {
                 if (sw.ElapsedMilliseconds / 1000 >= interval && !TCRWLockEnable)
                 {
-                    if (File.Exists(InfoPath))
-                    {
-                        if (TestJsonIntegrity())
-                            File.Copy(InfoPath, "TradeCord\\UserInfo_backup.json", true);
-                    }
+                    var fileSize = new FileInfo(InfoPath).Length;
+                    if (File.Exists(InfoPath) && fileSize > 2)
+                        File.Copy(InfoPath, InfoBackupPath, true);
 
                     SerializeInfo(UserInfo, InfoPath, true);
                     sw.Restart();
                 }
                 else await Task.Delay(10_000).ConfigureAwait(false);
             }
+        }
+
+        public static bool SelfBotScanner(ulong id, int cd)
+        {
+            if (UserCommandTimestamps.TryGetValue(id, out List<DateTime> timeStamps))
+            {
+                if (timeStamps.Count >= 15)
+                {
+                    int[] delta = new int[timeStamps.Count - 1];
+                    bool[] comp = new bool[delta.Length - 1];
+
+                    for (int i = 1; i < timeStamps.Count; i++)
+                        delta[i - 1] = (int)(timeStamps[i].Subtract(timeStamps[i - 1]).TotalSeconds - cd);
+
+                    for (int i = 1; i < delta.Length; i++)
+                        comp[i - 1] = delta[i] == delta[i - 1] || delta[i] - delta[i - 1] == -2 || delta[i] - delta[i - 1] == -1 || delta[i] - delta[i - 1] == 0 || delta[i] - delta[i - 1] == 1 || delta[i] - delta[i - 1] == 2;
+
+                    UserCommandTimestamps[id].Clear();
+                    if (comp.Any(x => x == false))
+                        return false;
+                    else return true;
+                }
+            }
+            return false;
         }
 
         public static bool ShinyLockCheck(int species, string ball, bool form)
@@ -161,7 +186,7 @@ namespace SysBot.Pokemon
                 BitConverter.GetBytes(deco).CopyTo(data, 0xE4);
                 pkm = PKMConverter.GetPKMfromBytes(data) ?? pkm;
             }
-            else if (pkm.Form > 0 && pkm.Species == (int)Species.Silvally || pkm.Species == (int)Species.Genesect)
+            else if (pkm.Form > 0 && (pkm.Species == (int)Species.Silvally || pkm.Species == (int)Species.Genesect))
             {
                 switch (pkm.Species)
                 {
@@ -185,51 +210,92 @@ namespace SysBot.Pokemon
 
             pkm.SetSuggestedMoves();
             pkm.SetRelearnMoves(pkm.GetSuggestedRelearnMoves(enc));
+            if (pkm.Species == 647 && pkm.Form > 0 && !pkm.Moves.Contains(548))
+                pkm.Move1 = (int)Move.SecretSword;
             pkm.HealPP();
 
             var legends = (int[])Enum.GetValues(typeof(Legends));
-            if (!GalarFossils.Contains(pkm.Species) && !legends.Contains(pkm.Species) && !pkm.FatefulEncounter && la.Valid)
+            if (!GalarFossils.Contains(pkm.Species) && !pkm.FatefulEncounter)
             {
-                do
-                {
-                    pkm.SetAbilityIndex(Random.Next(3));
-                } while (!new LegalityAnalysis(pkm).Valid);
+                if (enc is EncounterSlot8 slot8)
+                    pkm.SetAbilityIndex(slot8.Ability == -1 ? Random.Next(3) : slot8.Ability == 0 ? Random.Next(2) : slot8.Ability == 1 ? 0 : slot8.Ability == 2 ? 1 : 2);
+                else if (enc is EncounterStatic8 static8)
+                    pkm.SetAbilityIndex(static8.Ability == -1 ? Random.Next(3) : static8.Ability == 0 ? Random.Next(2) : static8.Ability == 1 ? 0 : static8.Ability == 2 ? 1 : 2);
+                else if (enc is EncounterStatic8N static8N)
+                    pkm.SetAbilityIndex(static8N.Ability == -1 ? Random.Next(3) : static8N.Ability == 0 ? Random.Next(2) : static8N.Ability == 1 ? 0 : static8N.Ability == 2 ? 1 : 2);
+                else if (enc is EncounterStatic8NC static8NC)
+                    pkm.SetAbilityIndex(static8NC.Ability == -1 ? Random.Next(3) : static8NC.Ability == 0 ? Random.Next(2) : static8NC.Ability == 1 ? 0 : static8NC.Ability == 2 ? 1 : 2);
+                else if (enc is EncounterStatic8ND static8ND)
+                    pkm.SetAbilityIndex(static8ND.Ability == -1 ? Random.Next(3) : static8ND.Ability == 0 ? Random.Next(2) : static8ND.Ability == 1 ? 0 : static8ND.Ability == 2 ? 1 : 2);
+                else if (enc is EncounterStatic8U static8U)
+                    pkm.SetAbilityIndex(static8U.Ability == -1 ? Random.Next(3) : static8U.Ability == 0 ? Random.Next(2) : static8U.Ability == 1 ? 0 : static8U.Ability == 2 ? 1 : 2);
             }
 
             bool goMew = pkm.Species == (int)Species.Mew && enc.Version == GameVersion.GO && pkm.IsShiny;
             bool goOther = (pkm.Species == (int)Species.Victini || pkm.Species == (int)Species.Jirachi || pkm.Species == (int)Species.Celebi || pkm.Species == (int)Species.Genesect) && enc.Version == GameVersion.GO;
-            pkm.IVs = goOther || goMew || pkm.FatefulEncounter ? pkm.IVs : enc.Version == GameVersion.GO ? pkm.SetRandomIVsGO() : enc is EncounterStatic8N ? pkm.SetRandomIVs(5) : enc is EncounterStatic8 ? pkm.SetRandomIVs() : pkm.SetRandomIVs(4);
-
-            if (enc is EncounterStatic8)
+            if (enc is EncounterSlotGO slotGO && !goMew && !goOther)
+                pkm.SetRandomIVsGO(slotGO.Type.GetMinIV());
+            else if (enc is EncounterStatic8N static8N)
+                pkm.SetRandomIVs(static8N.FlawlessIVCount + 1);
+            else if (enc is IOverworldCorrelation8 oc)
             {
                 var criteria = EncounterCriteria.GetCriteria(template);
-                int[][] hardcodedIVs = new int[][] { new int[] { 31, 0, 31, 31, 31, 31 }, new int[] { 31, 31, 31, 0, 31, 31 }, new int[] { 31, 31, 31, 31, 31, 31 } };
+                bool owCorr = true;
+                List<int> IVs = new() { 0, 0, 0, 0, 0, 0 };
                 int i = 0;
-                var laIV = new LegalityAnalysis(pkm);
 
-                while (i < 10)
-                {
-                    if (laIV.Valid)
-                        break;
-                    else criteria.SetRandomIVs(pkm);
+                while (i < 1_000)
+                {// Loosely adapted from ALM.
+                    if (enc is EncounterStatic8 static8)
+                    {
+                        owCorr = static8.IsOverworldCorrelation;
+                        if (!owCorr)
+                        {
+                            pkm.SetRandomIVs(Random.Next(static8.FlawlessIVCount, 7));
+                            break;
+                        }
 
-                    Overworld8RNG.ApplyDetails(pkm, criteria, shiny, pkm.FlawlessIVCount);
-                    laIV = new(pkm);
+                        var flawless = static8.FlawlessIVCount;
+                        while (IVs.FindAll(x => x == 31).Count < flawless)
+                            IVs[Random.Next(IVs.Count)] = 31;
+
+                        pkm.IVs = new int[] { IVs[0], IVs[1], IVs[2], IVs[3], IVs[4], IVs[5] };
+                        var available = xoroshiro8_wild.GetWildSeedFromIV8(new[] { flawless }, pkm.IVs, out uint seed);
+                        if (owCorr)
+                            APILegality.FindWildPIDIV8((PK8)pkm, shiny, available, seed);
+                    }
+                    else if (enc is EncounterSlot8 slot8)
+                    {
+                        var flawless = Random.Next(4);
+                        while (IVs.FindAll(x => x == 31).Count < flawless)
+                            IVs[Random.Next(IVs.Count)] = 31;
+
+                        pkm.IVs = new int[] { IVs[0], IVs[1], IVs[2], IVs[3], IVs[4], IVs[5] };
+                        var available = xoroshiro8_wild.GetWildSeedFromIV8(new[] { 0, 2, 3 }, pkm.IVs, out uint seed);
+                        var req = oc.GetRequirement(pkm);
+                        if (req == OverworldCorrelation8Requirement.MustHave)
+                            APILegality.FindWildPIDIV8((PK8)pkm, shiny, available, seed);
+                        else if (req == OverworldCorrelation8Requirement.MustNotHave)
+                        {
+                            pkm.SetRandomIVs(Random.Next(4));
+                            break;
+                        }
+                    }
+
                     i++;
-                }
-
-                if (i == 10 && !laIV.Valid)
-                {
-                    pkm.IVs = hardcodedIVs[Random.Next(hardcodedIVs.Length)];
-                    SimpleEdits.TryApplyHardcodedSeedWild8((PK8)pkm, enc, pkm.IVs, shiny);
+                    if (owCorr && oc.IsOverworldCorrelationCorrect(pkm))
+                        break;
+                    else
+                    {
+                        IVs = new() { 0, 0, 0, 0, 0, 0 };
+                        continue;
+                    }
                 }
             }
+            else if (enc.Version != GameVersion.GO && !pkm.FatefulEncounter)
+                pkm.SetRandomIVs(4);
 
-            var ballRng = Random.Next(3);
-            if (ballRng == 2)
-                BallApplicator.ApplyBallLegalByColor(pkm);
-            else BallApplicator.ApplyBallLegalRandom(pkm);
-
+            BallApplicator.ApplyBallLegalRandom(pkm);
             if (pkm.Ball == 16)
                 BallApplicator.ApplyBallLegalRandom(pkm);
 
@@ -357,7 +423,7 @@ namespace SysBot.Pokemon
             pk.ClearRelearnMoves();
             pk.Moves = new int[] { 0, 0, 0, 0 };
             var la = new LegalityAnalysis(pk);
-            pk.SetRelearnMoves(MoveSetApplicator.GetSuggestedRelearnMoves(la));
+            pk.RelearnMoves = MoveBreed.GetExpectedMoves(pk.RelearnMoves, la.EncounterMatch);
             pk.Moves = pk.RelearnMoves;
             pk.Move1_PPUps = pk.Move2_PPUps = pk.Move3_PPUps = pk.Move4_PPUps = 0;
             pk.SetMaximumPPCurrent(pk.Moves);
@@ -510,13 +576,28 @@ namespace SysBot.Pokemon
                 }
 
                 T? root;
-                using StreamReader sr = File.OpenText(file);
-                using (JsonReader reader = new JsonTextReader(sr))
+                string tmp = $"{file}_tmp";
+                while (true)
                 {
-                    JsonSerializer serializer = new();
-                    root = (T?)serializer.Deserialize(reader, typeof(T));
+                    try
+                    {
+                        if (!File.Exists(tmp))
+                            File.Copy(file, tmp);
+
+                        using StreamReader sr = File.OpenText(file);
+                        using JsonReader reader = new JsonTextReader(sr);
+                        JsonSerializer serializer = new();
+                        root = (T?)serializer.Deserialize(reader, typeof(T));
+
+                        if (File.Exists(InfoBackupPath))
+                            File.Delete(tmp);
+                        return root ?? new();
+                    }
+                    catch
+                    {
+                        Environment.Exit(0);
+                    }
                 }
-                return root ?? new();
             }
             else
             {
@@ -531,16 +612,26 @@ namespace SysBot.Pokemon
             if (!TCInitialized)
             {
                 TCInitialized = true;
+                UserInfo = GetRoot<TCUserInfoRoot>(InfoPath);
                 _ = Task.Run(() => SerializationMonitor(interval));
             }
 
-            while (TCRWLockEnable || GiftInProgress.Contains(id) && !gift || CommandInProgress.FindAll(x => x == id).Count > 1 && !gift)
-                await Task.Delay(0_100).ConfigureAwait(false);
-
+            int timer = (int)(Random.NextDouble() * 2000);
             if (!gift)
                 CommandInProgress.Add(id);
             else if (gift)
                 GiftInProgress.Add(id);
+
+            while (TCRWLockEnable || GiftInProgress.Contains(id) && !gift || CommandInProgress.FindAll(x => x == id).Count > 1 && !gift)
+            {
+                await Task.Delay(0_100).ConfigureAwait(false);
+                if (!GiftInProgress.Contains(id) && CommandInProgress.FindAll(x => x == id).Count > 1)
+                {
+                    timer -= 0_100;
+                    if (timer <= 0)
+                        CommandInProgress.Remove(id);
+                }
+            }
 
             var user = UserInfo.Users.FirstOrDefault(x => x.UserID == id);
             if (user == null)
@@ -558,7 +649,7 @@ namespace SysBot.Pokemon
                 GiftInProgress.Remove(info.UserID);
         }
 
-        public static void SerializeInfo(object? root, string filePath, bool tc = false)
+        public static void SerializeInfo(object root, string filePath, bool tc = false)
         {
             if (tc)
                 TCRWLockEnable = true;
@@ -567,17 +658,20 @@ namespace SysBot.Pokemon
             {
                 try
                 {
-                    JsonSerializer serializer = new();
-                    using StreamWriter writer = File.CreateText(filePath);
-                    serializer.Formatting = Formatting.Indented;
-                    serializer.Serialize(writer, root);
-                    writer.Close();
-                    if (TestJsonIntegrity())
+                    var json = JsonConvert.SerializeObject(root, new JsonSerializerSettings
+                    {
+                        Formatting = Formatting.Indented,
+                        DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate,
+                        NullValueHandling = NullValueHandling.Ignore
+                    });
+
+                    File.WriteAllText(filePath, json);
+                    if (TestJsonIntegrity(tc))
                         break;
                 }
                 catch
                 {
-                    Thread.Sleep(0_050);
+                    Thread.Sleep(0_100);
                 }
             }
 
@@ -585,7 +679,7 @@ namespace SysBot.Pokemon
                 TCRWLockEnable = false;
         }
 
-        private static bool TestJsonIntegrity()
+        private static bool TestJsonIntegrity(bool tc)
         {
             try
             {
@@ -593,7 +687,11 @@ namespace SysBot.Pokemon
                 using (JsonReader reader = new JsonTextReader(sr))
                 {
                     JsonSerializer serializer = new();
-                    TCUserInfoRoot? rootTest = (TCUserInfoRoot?)serializer.Deserialize(reader, typeof(TCUserInfoRoot));
+                    TCUserInfoRoot? root = (TCUserInfoRoot?)serializer.Deserialize(reader, typeof(TCUserInfoRoot));
+                    if (root == null)
+                        return false;
+                    else if (tc && UserInfo.Users.Count > 0 && root.Users.Count == 0)
+                        return false;
                 }
                 return true;
             }
