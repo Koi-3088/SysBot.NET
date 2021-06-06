@@ -247,7 +247,7 @@ namespace SysBot.Pokemon.Discord
         [Alias("off")]
         [Summary("Turn off the console screen for specified bot(s).")]
         [RequireOwner]
-        public async Task ScreenOff(string addressesCommaSeparated)
+        public async Task ScreenOff([Remainder] string addressesCommaSeparated)
         {
             var address = addressesCommaSeparated.Replace(" ", "").Split(',');
             var source = new System.Threading.CancellationTokenSource();
@@ -273,7 +273,7 @@ namespace SysBot.Pokemon.Discord
         [Alias("on")]
         [Summary("Turn on the console screen for specified bot(s).")]
         [RequireOwner]
-        public async Task ScreenOn(string addressesCommaSeparated)
+        public async Task ScreenOn([Remainder] string addressesCommaSeparated)
         {
             var address = addressesCommaSeparated.Replace(" ", "").Split(',');
             var source = new System.Threading.CancellationTokenSource();
