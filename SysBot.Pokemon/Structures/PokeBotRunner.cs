@@ -108,7 +108,6 @@ namespace SysBot.Pokemon
             PokeRoutineType.RemoteControl => new RemoteControlBot(cfg),
             PokeRoutineType.DenBot => new DenBot(cfg, Hub, new RaidBot(cfg, Hub)),
             PokeRoutineType.LairBot => new LairBot(cfg, Hub),
-            PokeRoutineType.BoolBot => new BoolBot(cfg, Hub),
             _ => throw new ArgumentException(nameof(cfg.NextRoutineType)),
         };
     }
