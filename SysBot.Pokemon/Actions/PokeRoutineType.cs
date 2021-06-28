@@ -20,6 +20,7 @@
         EncounterBot,
         DenBot,
         LairBot,
+        BoolBot,
 
         RemoteControl,
     }
