@@ -35,7 +35,8 @@ namespace SysBot.Pokemon
                 _ => DexRecSkipper(token),
             };
             await task.ConfigureAwait(false);
-        }        
+        }
+        
         private async Task ResetLegendaryLairFlags(CancellationToken token)
         {
             uint offset = ResetLegendFlagOffset;
@@ -59,31 +60,25 @@ namespace SysBot.Pokemon
         }
         private async Task LocationInjector(CancellationToken token)
         {
-            if (Settings.PokédexRecommendationLocationTarget == DexRecLoc.None)
+            if (Settings.DexRecConditions.PokédexRecommendationLocationTarget == DexRecLoc.None)
             {
                 Log($"No desired location selected.");
                 return;
             }
-            ulong location = (ulong)Settings.PokédexRecommendationLocationTarget;
+            ulong location = (ulong)Settings.DexRecConditions.PokédexRecommendationLocationTarget;
 
             await Connection.WriteBytesAsync(BitConverter.GetBytes(location), DexRecLocation, token).ConfigureAwait(false);
-            Log($"Updating Current Recommendations to Specified location! {Settings.PokédexRecommendationLocationTarget}");
-            Log($"Checking Pokédex for Current Recommendations");
-            await Click(X, 1_250, token).ConfigureAwait(false);
-            await Click(A, 2_000, token).ConfigureAwait(false);
-            Log($"Location Update Complete.");
-            await Task.Delay(1_500, token).ConfigureAwait(false);
-            while (!await IsOnOverworld(Hub.Config, token).ConfigureAwait(false))
-                await Click(B, 0_500, token).ConfigureAwait(false);
+            Log($"Updating Current Location to: {Settings.DexRecConditions.PokédexRecommendationLocationTarget}");
 
-            Settings.PokédexRecommendationLocationTarget = DexRecLoc.None;
+            Settings.DexRecConditions.PokédexRecommendationLocationTarget = DexRecLoc.None;
+            Log($"Location Update Complete.");
             return;
         }
         private async Task SpeciesInjector(CancellationToken token)
         {
             uint offset = DexRecMon;
             uint gender = DexRecMonGender;
-            var dex = Settings.PokédexRecommendationSpeciesSlots;
+            var dex = Settings.DexRecConditions.PokédexRecommendationSpeciesSlots;
 
             for (int i = 0; i < dex.Length; i++)
             {
@@ -110,35 +105,42 @@ namespace SysBot.Pokemon
                 gender += 0x20;
             }
 
-            Log($"Checking Pokédex for Current Recommendations");
-            await Click(X, 1_250, token).ConfigureAwait(false);
-            await Click(A, 1_250, token).ConfigureAwait(false);
+            Settings.DexRecConditions.PokédexRecommendationLocationTarget = DexRecLoc.None;
             Log($"Species Update Complete.");
-            await Task.Delay(1_500, token).ConfigureAwait(false);
-            while (!await IsOnOverworld(Hub.Config, token).ConfigureAwait(false))
-                await Click(B, 0_500, token).ConfigureAwait(false);
-
-            Settings.PokédexRecommendationLocationTarget = DexRecLoc.None;
             return;
         }
         private async Task DexRecSkipper(CancellationToken token)
         {
-            Log("Starting DexRec Day Skipping! Ensure that Date/Time Sync is ON!");
-            DexRecSpecies dex = Settings.PokédexRecommendationSpeciesTarget;
+            Log("Starting DaySkipping to update recommendations! Ensure that Date/Time Sync is ON And that when the Menu is Open the cursor hovered over the Pokedex!");
+            DexRecSpecies dex = Settings.DexRecConditions.PokédexRecommendationSpeciesTarget;
             DexRecSpecies species;
             uint offset = DexRecMon;
-            Log($"Updating recommendations!");
+            string log = string.Empty;
+
+            if (dex == DexRecSpecies.None && Settings.DexRecConditions.PokédexRecommendationLocationTarget == DexRecLoc.None)
+                Log($"No target set, skipping indefinitely.. When you see a species or location you want, stop the bot.");
+
             while (!token.IsCancellationRequested)
             {
-                if (dex == DexRecSpecies.None && Settings.PokédexRecommendationLocationTarget == DexRecLoc.None)
-                    Log($"No target set, skipping indefinitely.. When you see a species or location you want, stop the bot.");
-
+                Log($"DaySkipping to update recommendations!");
                 await DaySkip(token).ConfigureAwait(false);
                 await Task.Delay(1_500, token).ConfigureAwait(false);
                 Log($"Checking Pokédex for Current Recommendations");
                 await Click(X, 1_000, token).ConfigureAwait(false);
-                await Click(A, 1_000, token).ConfigureAwait(false);
-                await Task.Delay(3_000, token).ConfigureAwait(false);
+                await Click(A, 5_000, token).ConfigureAwait(false);
+
+                ulong currentlocation = BitConverter.ToUInt64(await Connection.ReadBytesAsync(DexRecLocation, 8, token).ConfigureAwait(false), 0);
+                for (int l = 0; l < 4; l++)
+                {
+                    byte[] currentspecies = await SwitchConnection.ReadBytesAsync(offset, 2, token).ConfigureAwait(false);
+                    species = (DexRecSpecies)BitConverter.ToUInt16(currentspecies.Slice(0, 2), 0);
+                    {
+                        log += $"\n - {species}";
+                    }
+                    offset += 0x20;
+                }
+                Log($"Current Location is: {(DexRecLoc)currentlocation}\nCurrent Species are: {log}");
+
                 if (dex != DexRecSpecies.None)
                 {
                     int i = 0;
@@ -149,12 +151,10 @@ namespace SysBot.Pokemon
                         species = (DexRecSpecies)BitConverter.ToUInt16(data.Slice(0, 2), 0);
                         if (species != 0)
                         {
-                            Log($"Current Recommended Species: {species}.");
-
                             if (species == dex)
                             {
                                 Log($"Recommendation Matches Stop Condition Species: {species}.");
-                                Settings.PokédexRecommendationLocationTarget = DexRecLoc.None;
+                                Settings.DexRecConditions.PokédexRecommendationLocationTarget = DexRecLoc.None;
                                 return;
                             }
                         }
@@ -162,23 +162,20 @@ namespace SysBot.Pokemon
                         i++;
                     } while (i < 4);
                 }
-                if (Settings.PokédexRecommendationLocationTarget != DexRecLoc.None)
-                {
-                    ulong dexreclocation = BitConverter.ToUInt64(await Connection.ReadBytesAsync(DexRecLocation, 8, token).ConfigureAwait(false), 0);
-                    Log($"Searching for location: {Hub.Config.Bool.PokédexRecommendationLocationTarget}.");
 
-                    Log($"Current Recommended Location: {(DexRecLoc)dexreclocation}.");
-                    if ((ulong)Settings.PokédexRecommendationLocationTarget == dexreclocation)
+                if (Settings.DexRecConditions.PokédexRecommendationLocationTarget != DexRecLoc.None)
+                {
+                    Log($"Searching for location: {Hub.Config.Bool.DexRecConditions.PokédexRecommendationLocationTarget}.");
+
+                    if ((ulong)Settings.DexRecConditions.PokédexRecommendationLocationTarget == currentlocation)
                     {
-                        Log($"Recommendation Matches Desired Location: {Settings.PokédexRecommendationLocationTarget}.");
-                        Settings.PokédexRecommendationLocationTarget = DexRecLoc.None;
+                        Log($"Recommendation Matches Desired Location: {Settings.DexRecConditions.PokédexRecommendationLocationTarget}.");
+                        Settings.DexRecConditions.PokédexRecommendationLocationTarget = DexRecLoc.None;
                         return;
                     }
                 }
-                await Task.Delay(3_000, token).ConfigureAwait(false);
                 while (!await IsOnOverworld(Hub.Config, token).ConfigureAwait(false))
-                    await Click(B, 0_500, token).ConfigureAwait(false);
-                await Task.Delay(1_000, token).ConfigureAwait(false);
+                    await Click(B, 1_500, token).ConfigureAwait(false);
             }
         }
     }

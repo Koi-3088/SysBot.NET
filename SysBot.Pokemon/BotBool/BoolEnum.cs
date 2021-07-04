@@ -6,7 +6,6 @@
         DexRecSpeciesInjector,
         DexRecLocationInjector,
         ResetLegendaryLairFlags,
-        ResetOverworldBeastFlags,
     }
     public enum DexRecLoc : ulong
     {
