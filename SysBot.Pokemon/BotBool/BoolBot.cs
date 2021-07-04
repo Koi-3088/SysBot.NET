@@ -28,11 +28,10 @@ namespace SysBot.Pokemon
 
             var task = Hub.Config.Bool.BoolType switch
             {
-                BoolMode.DexRecSkipper => DexRecSkipper(token),
-                BoolMode.DexRecLocationInjector => LocationInjector(token),
-                BoolMode.DexRecSpeciesInjector => SpeciesInjector(token),
+                BoolMode.Skipper => Skipper(token),
+                BoolMode.Injector => Injector(token),
                 BoolMode.ResetLegendaryLairFlags => ResetLegendaryLairFlags(token),
-                _ => DexRecSkipper(token),
+                _ => Skipper(token),
             };
             await task.ConfigureAwait(false);
         }
@@ -58,27 +57,11 @@ namespace SysBot.Pokemon
             return;
 
         }
-        private async Task LocationInjector(CancellationToken token)
-        {
-            if (Settings.DexRecConditions.PokédexRecommendationLocationTarget == DexRecLoc.None)
-            {
-                Log($"No desired location selected.");
-                return;
-            }
-            ulong location = (ulong)Settings.DexRecConditions.PokédexRecommendationLocationTarget;
-
-            await Connection.WriteBytesAsync(BitConverter.GetBytes(location), DexRecLocation, token).ConfigureAwait(false);
-            Log($"Updating Current Location to: {Settings.DexRecConditions.PokédexRecommendationLocationTarget}");
-
-            Settings.DexRecConditions.PokédexRecommendationLocationTarget = DexRecLoc.None;
-            Log($"Location Update Complete.");
-            return;
-        }
-        private async Task SpeciesInjector(CancellationToken token)
+        private async Task Injector(CancellationToken token)
         {
             uint offset = DexRecMon;
             uint gender = DexRecMonGender;
-            var dex = Settings.DexRecConditions.PokédexRecommendationSpeciesSlots;
+            var dex = Settings.DexRecConditions.SpeciesTargets;
 
             for (int i = 0; i < dex.Length; i++)
             {
@@ -104,20 +87,31 @@ namespace SysBot.Pokemon
                 offset += 0x20;
                 gender += 0x20;
             }
-
-            Settings.DexRecConditions.PokédexRecommendationLocationTarget = DexRecLoc.None;
             Log($"Species Update Complete.");
+
+            if (Settings.DexRecConditions.LocationTarget == DexRecLoc.None)
+            {
+                Log($"No desired location selected.");
+                return;
+            }
+            ulong location = (ulong)Settings.DexRecConditions.LocationTarget;
+
+            await Connection.WriteBytesAsync(BitConverter.GetBytes(location), DexRecLocation, token).ConfigureAwait(false);
+            Log($"Updating Current Location to: {Settings.DexRecConditions.LocationTarget}");
+
+            Settings.DexRecConditions.LocationTarget = DexRecLoc.None;
+            Log($"Location Update Complete.");
             return;
         }
-        private async Task DexRecSkipper(CancellationToken token)
+        private async Task Skipper(CancellationToken token)
         {
             Log("Starting DaySkipping to update recommendations! Ensure that Date/Time Sync is ON And that when the Menu is Open the cursor hovered over the Pokedex!");
-            DexRecSpecies dex = Settings.DexRecConditions.PokédexRecommendationSpeciesTarget;
+            DexRecSpecies[] dex = Settings.DexRecConditions.SpeciesTargets;
             DexRecSpecies species;
             uint offset = DexRecMon;
             string log = string.Empty;
 
-            if (dex == DexRecSpecies.None && Settings.DexRecConditions.PokédexRecommendationLocationTarget == DexRecLoc.None)
+            if (dex[1] == DexRecSpecies.None && Settings.DexRecConditions.LocationTarget == DexRecLoc.None)
                 Log($"No target set, skipping indefinitely.. When you see a species or location you want, stop the bot.");
 
             while (!token.IsCancellationRequested)
@@ -138,39 +132,24 @@ namespace SysBot.Pokemon
                         log += $"\n - {species}";
                     }
                     offset += 0x20;
+                    for (int i = 0; i < dex.Length; i++)
+                        if (species == dex[i])
+                        {
+                            Log($"Recommended Species found! {species}.");
+                            Settings.DexRecConditions.LocationTarget = DexRecLoc.None;
+                            return;
+                        }
                 }
                 Log($"Current Location is: {(DexRecLoc)currentlocation}\nCurrent Species are: {log}");
 
-                if (dex != DexRecSpecies.None)
+                if (Settings.DexRecConditions.LocationTarget != DexRecLoc.None)
                 {
-                    int i = 0;
-                    Log($"Searching for Pokémon: {dex}.");
-                    do
-                    {
-                        byte[] data = await SwitchConnection.ReadBytesAsync(offset, 2, token).ConfigureAwait(false);
-                        species = (DexRecSpecies)BitConverter.ToUInt16(data.Slice(0, 2), 0);
-                        if (species != 0)
-                        {
-                            if (species == dex)
-                            {
-                                Log($"Recommendation Matches Stop Condition Species: {species}.");
-                                Settings.DexRecConditions.PokédexRecommendationLocationTarget = DexRecLoc.None;
-                                return;
-                            }
-                        }
-                        offset += 0x20;
-                        i++;
-                    } while (i < 4);
-                }
+                    Log($"Searching for location: {Settings.DexRecConditions.LocationTarget}.");
 
-                if (Settings.DexRecConditions.PokédexRecommendationLocationTarget != DexRecLoc.None)
-                {
-                    Log($"Searching for location: {Hub.Config.Bool.DexRecConditions.PokédexRecommendationLocationTarget}.");
-
-                    if ((ulong)Settings.DexRecConditions.PokédexRecommendationLocationTarget == currentlocation)
+                    if ((ulong)Settings.DexRecConditions.LocationTarget == currentlocation)
                     {
-                        Log($"Recommendation Matches Desired Location: {Settings.DexRecConditions.PokédexRecommendationLocationTarget}.");
-                        Settings.DexRecConditions.PokédexRecommendationLocationTarget = DexRecLoc.None;
+                        Log($"Recommendation Matches Target Location: {Settings.DexRecConditions.LocationTarget}.");
+                        Settings.DexRecConditions.LocationTarget = DexRecLoc.None;
                         return;
                     }
                 }

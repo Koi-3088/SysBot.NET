@@ -9,8 +9,8 @@ namespace SysBot.Pokemon
         private const string Bool = nameof(Bool);
         public override string ToString() => "Bool Bot Settings";
 
-        [Category(Bool), Description("The method by which the bot will update certain Bools. ")]
-        public BoolMode BoolType { get; set; } = BoolMode.DexRecSkipper;
+        [Category(Bool), Description("The method by which the bot will reset bools of Pokémon. If you are skipping for a Location, select a desired location under PokédexRecommendationLocation then run DexRecSkipper.  If you are skipping for a Species, select it as your StopOnSpecies under StopConditions then run DexRecSkipper. Make sure your Menu Icon is hovered over the Pokédex.")]
+        public BoolMode BoolType { get; set; } = BoolMode.Skipper;
 
         [Category(Bool), Description("Extra Conditions"), DesignerSerializationVisibility(DesignerSerializationVisibility.Content)]
         public DexRecConditionsCategory DexRecConditions { get; set; } = new();
@@ -21,14 +21,11 @@ namespace SysBot.Pokemon
         {
             public override string ToString() => "DexRec Conditions";
 
-            [Category(Bool), Description("When set to DexRecSkipper and Location is not None, will skip indefinitely. You must manually stop when you see a desired location you want. Otherwise, set BoolMode to DexRecLocation and choose a location of choice to have it injected.")]
-            public DexRecLoc PokédexRecommendationLocationTarget { get; set; } = DexRecLoc.None;
+            [Category(Bool), Description("When set to Skipper and Location is set to None, will skip indefinitely. If a location is selected it will stop skipping when location matches the target. Otherwise, select Injector to set a location of choice to have it injected.")]
+            public DexRecLoc LocationTarget { get; set; } = DexRecLoc.None;
 
-            [Category(Bool), Description("When set to DexRecSkipper and Species is not None, will skip indefinitely. You must manually stop when you see a desired species you want.")]
-            public DexRecSpecies PokédexRecommendationSpeciesTarget { get; set; } = DexRecSpecies.None;
-
-            [Category(Bool), Description("Set BoolMode to DexRecSpeciesInjector. If set to None, will empty the slot.")]
-            public DexRecSpecies[] PokédexRecommendationSpeciesSlots { get; set; } = { DexRecSpecies.None, DexRecSpecies.None, DexRecSpecies.None, DexRecSpecies.None };
+            [Category(Bool), Description("When set to Skipper and all species are set to None, will skip indefinitely. If any slot has a Species, will stop when species matches the target. Otherwise, select Injector to set the desired species. Leaving a slot as None will empty it.")]
+            public DexRecSpecies[] SpeciesTargets { get; set; } = { DexRecSpecies.None, DexRecSpecies.None, DexRecSpecies.None, DexRecSpecies.None };
         }
         public class DexRecConditionsCategoryConverter : TypeConverter
         {

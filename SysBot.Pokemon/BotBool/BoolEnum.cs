@@ -2,9 +2,8 @@
 {
     public enum BoolMode
     {
-        DexRecSkipper,
-        DexRecSpeciesInjector,
-        DexRecLocationInjector,
+        Skipper,
+        Injector,
         ResetLegendaryLairFlags,
     }
     public enum DexRecLoc : ulong
