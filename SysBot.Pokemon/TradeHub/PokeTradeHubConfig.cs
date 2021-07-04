@@ -87,6 +87,10 @@ namespace SysBot.Pokemon
         [TypeConverter(typeof(ExpandableObjectConverter))]
         public DenSettings Den { get; set; } = new DenSettings();
 
+        [Category(Bots)]
+        [TypeConverter(typeof(ExpandableObjectConverter))]
+        public BoolSettings Bool { get; set; } = new();
+
         // Integration
 
         [Category(Integration)]
