@@ -277,7 +277,7 @@ namespace SysBot.Pokemon
             {
                 var move = LairBotUtil.MoveRoot.Moves.FirstOrDefault(x => x.MoveID == PlayerPk.Moves[priority ? priorityMove : bestMove]);
                 bool recoil = move.Recoil >= 206 && move.EffectSequence >= 48;
-                if ((stuck && (OldMoveIndex == (priority ? priorityMove : bestMove))) || Settings.EnableOHKO && (recoil || move.Charge) || move.MoveID == (int)Move.Belch)
+                if ((stuck && (OldMoveIndex == (priority ? priorityMove : bestMove))) || (Settings.EnableOHKO && (recoil || move.Charge)) || move.MoveID == (int)Move.Belch)
                 {
                     dmgWeight[priority ? priorityMove : bestMove] = 0.0;
                     bestMove = dmgWeight.Max() < 0.0 ? statusMoves[new Random().Next(statusMoves.Count)] : dmgWeight.IndexOf(dmgWeight.Max());
@@ -307,22 +307,31 @@ namespace SysBot.Pokemon
         private bool CheckIfUpgrade(PK8[] party, PK8 lairPk)
         {
             bool upgrade = false;
+            var dmgWeightPlayer = LairBotUtil.WeightedDamage(party, PlayerPk.Species == 132 ? LairBoss : PlayerPk, LairBoss, false);
+            var dmgWeightLair = LairBotUtil.WeightedDamage(new PK8[] { new() }, lairPk, LairBoss, false);
+
             if (Settings.EnableOHKO)
             {
                 var ourSpeed = LairBotUtil.CalculateEffectiveStat(PlayerPk.IV_SPE, PlayerPk.EV_SPE, PlayerPk.PersonalInfo.SPE, PlayerPk.CurrentLevel);
                 bool noPriority = LairBotUtil.PriorityIndex(PlayerPk) == -1;
                 var lairPkSpeed = LairBotUtil.CalculateEffectiveStat(lairPk.IV_SPE, lairPk.EV_SPE, lairPk.PersonalInfo.SPE, lairPk.CurrentLevel);
                 bool lairPkPriority = LairBotUtil.PriorityIndex(lairPk) != -1;
+
+                var maxDmgMoveIndex = dmgWeightPlayer.ToList().IndexOf(dmgWeightPlayer.Max());
+                var move = LairBotUtil.MoveRoot.Moves.FirstOrDefault(x => x.MoveID == PlayerPk.Moves[maxDmgMoveIndex]);
+
+                if (move.Charge)
+                {
+                    dmgWeightPlayer[maxDmgMoveIndex] = 0.0;
+                    if (!dmgWeightPlayer.Any(x => x > 0.0))
+                        return false;
+                }
+
                 if ((noPriority && (lairPkSpeed > ourSpeed)) || (lairPkPriority && noPriority))
                     upgrade = true;
             }
-            else
-            {
-                var dmgWeightPlayer = LairBotUtil.WeightedDamage(party, PlayerPk.Species == 132 ? LairBoss : PlayerPk, LairBoss, false);
-                var dmgWeightLair = LairBotUtil.WeightedDamage(new PK8[] { new() }, lairPk, LairBoss, false);
-                if (dmgWeightLair.Max() > dmgWeightPlayer.Max())
-                    upgrade = true;
-            }
+            else if (dmgWeightLair.Max() > dmgWeightPlayer.Max())
+                upgrade = true;
 
             if (upgrade && lairPk.Species != LairBoss.Species)
                 Log("Lair encounter is better than our current Pokémon. Going to catch it and swap our current Pokémon.");

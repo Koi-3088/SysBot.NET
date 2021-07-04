@@ -477,15 +477,18 @@ namespace SysBot.Pokemon
             else return 0;
         }
 
-        public static void EncounterLogs(PK8 pk)
+        public static void EncounterLogs(PK8 pk, string filepath = "")
         {
-            if (!File.Exists("EncounterLogPretty.txt"))
+            if (filepath == "")
+                filepath = "EncounterLogPretty.txt";
+
+            if (!File.Exists(filepath))
             {
                 var blank = "Totals: 0 Pokémon, 0 Eggs, 0 ★, 0 ■, 0 🎀\n_________________________________________________\n";
-                File.WriteAllText("EncounterLogPretty.txt", blank);
+                File.WriteAllText(filepath, blank);
             }
 
-            var content = File.ReadAllText("EncounterLogPretty.txt").Split('\n').ToList();
+            var content = File.ReadAllText(filepath).Split('\n').ToList();
             var splitTotal = content[0].Split(',');
             content.RemoveRange(0, 3);
 
@@ -526,7 +529,7 @@ namespace SysBot.Pokemon
                 $"{markTotal} 🎀 ({GetPercent(pokeTotal, markTotal)}%)" +
                 "\n_________________________________________________\n";
             content.Insert(0, totalsString);
-            File.WriteAllText("EncounterLogPretty.txt", string.Join("\n", content));
+            File.WriteAllText(filepath, string.Join("\n", content));
         }
 
         private static string GetPercent(int total, int subtotal) => (100.0 * ((double)subtotal / total)).ToString("N2");
