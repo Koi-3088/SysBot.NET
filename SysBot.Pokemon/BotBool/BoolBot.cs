@@ -1,5 +1,6 @@
 ﻿using PKHeX.Core;
 using System;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using static SysBot.Base.SwitchButton;
@@ -112,12 +113,14 @@ namespace SysBot.Pokemon
         private async Task Skipper(CancellationToken token)
         {
             DexRecSpecies[] dex = Settings.DexRecConditions.SpeciesTargets;
+            DexRecLoc loc = Settings.DexRecConditions.LocationTarget;
             DexRecSpecies species;
             uint offset = DexRecMon;
             string log = string.Empty;
 
+            bool empty = dex.All(x => x == DexRecSpecies.None) && loc == DexRecLoc.None;
             Log("Starting DaySkipping to update recommendations! Ensure that Date/Time Sync is ON, and that when the menu is open the cursor is hovered over the Pokédex!");
-            if (dex[1] == DexRecSpecies.None && Settings.DexRecConditions.LocationTarget == DexRecLoc.None)
+            if (empty)
                 Log("No target set, skipping indefinitely.. When you see a species or location you want, stop the bot.");
 
             while (!token.IsCancellationRequested)
@@ -131,32 +134,42 @@ namespace SysBot.Pokemon
                 await Click(A, 5_000, token).ConfigureAwait(false);
 
                 ulong currentlocation = BitConverter.ToUInt64(await Connection.ReadBytesAsync(DexRecLocation, 8, token).ConfigureAwait(false), 0);
-                for (int l = 0; l < 4; l++)
+                int s = 0;
+                do
                 {
                     byte[] currentspecies = await SwitchConnection.ReadBytesAsync(offset, 2, token).ConfigureAwait(false);
                     species = (DexRecSpecies)BitConverter.ToUInt16(currentspecies.Slice(0, 2), 0);
-                    log += $"\n - {species}";
-                    offset += 0x20;
+                    if (species != 0)
+                        log += $"\n - {species}";
 
-                    for (int i = 0; i < dex.Length; i++)
+                    if (!empty)
                     {
-                        if (species == dex[i])
+                        for (int d = 0; d < dex.Length; d++)
                         {
-                            Log($"Recommended species found: {species}!");
-                            Settings.DexRecConditions.LocationTarget = DexRecLoc.None;
-                            return;
+                            if (species == dex[d])
+                            {
+                                Log($"Recommended species found: {species}!");
+                                _ = loc == DexRecLoc.None;
+                                return;
+                            }
                         }
                     }
-                }
-                Log($"Current location: {(DexRecLoc)currentlocation}\nCurrent species: {log}");
 
-                if (Settings.DexRecConditions.LocationTarget != DexRecLoc.None)
+                    offset += 0x20;
+                    s++;
+                } while (s < 4);
+
+                Log($"Current location: {(DexRecLoc)currentlocation}\nCurrent species: {log}");
+                offset = DexRecMon;
+                log = $"";
+
+                if (loc != DexRecLoc.None)
                 {
-                    Log($"Searching for location: {Settings.DexRecConditions.LocationTarget}.");
-                    if ((ulong)Settings.DexRecConditions.LocationTarget == currentlocation)
+                    Log($"Searching for location: {loc}.");
+                    if ((ulong)loc == currentlocation)
                     {
-                        Log($"Recommendation matches target location: {Settings.DexRecConditions.LocationTarget}.");
-                        Settings.DexRecConditions.LocationTarget = DexRecLoc.None;
+                        Log($"Recommendation matches target location: {loc}.");
+                        _ = loc == DexRecLoc.None;
                         return;
                     }
                 }
