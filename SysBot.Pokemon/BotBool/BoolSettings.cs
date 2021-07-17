@@ -9,7 +9,7 @@ namespace SysBot.Pokemon
 
         public override string ToString() => "Bool Bot Settings";
 
-        [Category(Bool), Description("The method by which the bot will reset booleans of Pokémon. If you are skipping for a location, select a desired location under \"PokédexRecommendationLocation\" then run DexRecSkipper.  If you are skipping for a species, select it as your \"StopOnSpecies\" under \"StopConditions\" then run DexRecSkipper. Make sure your menu icon is hovered over the Pokédex.")]
+        [Category(Bool), Description("The method by which the bot will reset booleans of Pokémon. If you are skipping for a location, select a desired location under \"LocationTarget\" then run Skipper.  If you are skipping for a species, select the species under \"SpeciesTarget\" then run Skipper. Make sure your menu icon is hovered over the Pokédex when the menu opens.")]
         public BoolMode BoolType { get; set; } = BoolMode.Skipper;
 
         [Category(Bool), Description("Extra Conditions"), DesignerSerializationVisibility(DesignerSerializationVisibility.Content)]
